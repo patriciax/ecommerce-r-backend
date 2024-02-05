@@ -1,0 +1,1 @@
+export const maxImagesCount = process.env.MAX_IMAGES_COUNT ? parseInt(process.env.MAX_IMAGES_COUNT) : 3;
