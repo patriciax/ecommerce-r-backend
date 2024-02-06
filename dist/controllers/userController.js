@@ -32,7 +32,9 @@ class UserController {
         });
         this.getUserInfo = (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
+                console.log("all users", yield user_schema_1.User.find({}));
                 const user = yield user_schema_1.User.findById(req.body.user._id).select('-password -__v -_id').select('role').populate('role');
+                console.log("user", user);
                 return res.status(200).json({
                     "status": "success",
                     "data": user
