@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "ts-node-dev --env-file=config.env src/server.ts",
-    "build": "NODE_ENV=production rimraf ./dist && tsc && cp ./src/config.env.production ./dist/config.env.production && mkdir ./dist/uploads",
+    "build": "NODE_ENV=production rimraf ./dist && tsc && cp ./src/config.env.production ./dist/config.env && mkdir ./dist/uploads",
     "seed": "ts-node-dev src/seeders/mainSeeder.ts"
   },
   "author": "",

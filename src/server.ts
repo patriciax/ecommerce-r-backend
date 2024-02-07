@@ -7,8 +7,7 @@ import userRoutes from './routes/users.route'
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
-console.log("node_env", process.env.NODE_ENV)
-const result = dotenv.config({path: `${__dirname}/${process.env.NODE_ENV === 'production' ? 'config.env.local' : 'config.env.production'}`})
+const result = dotenv.config({path: `${__dirname}/config.env`})
 const dbString = process.env.DATABASE || '';
 
 mongoose.connect(dbString).then(() => {
