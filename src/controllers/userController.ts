@@ -28,8 +28,14 @@ export class UserController{
     public getUserInfo = async(req:Request, res: Response) => {
 
         try{
-            
+
+
+            console.log("all users", await User.find({}))
+
             const user = await User.findById(req.body.user._id).select('-password -__v -_id').select('role').populate('role');
+
+            console.log("user", user)
+
             return res.status(200).json({
                 "status": "success",
                 "data": user

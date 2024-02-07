@@ -20,7 +20,11 @@ const ProductSchema = new Schema({
     mainImage: {
         type: String
     },
-    images: [String]
+    images: [String],
+    createdAt:{
+        type: Date,
+        default: Date.now
+    }
 
 })
 

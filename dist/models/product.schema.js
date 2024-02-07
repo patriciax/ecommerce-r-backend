@@ -22,6 +22,10 @@ const ProductSchema = new mongoose_1.Schema({
     mainImage: {
         type: String
     },
-    images: [String]
+    images: [String],
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
 });
 exports.Product = (0, mongoose_1.model)('Product', ProductSchema);

@@ -7,7 +7,8 @@ import userRoutes from './routes/users.route'
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
-const result = dotenv.config({path: `${__dirname}/config.env`})
+console.log("node_env", process.env.NODE_ENV)
+const result = dotenv.config({path: `${__dirname}/${process.env.NODE_ENV === 'production' ? 'config.env.local' : 'config.env.production'}`})
 const dbString = process.env.DATABASE || '';
 
 mongoose.connect(dbString).then(() => {
@@ -19,7 +20,7 @@ initCloudinary()
 const app = express();
 app.use(bodyParser.json({limit: '35mb'}));
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5000'],
+    origin: ['http://localhost:5173', 'http://localhost:5000', 'http://ecommerce-dashboard.sytes.net'],
 }));
 app.use(express.json())
 app.use(express.static('uploads'))

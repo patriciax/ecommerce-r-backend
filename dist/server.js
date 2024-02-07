@@ -11,8 +11,8 @@ const products_route_1 = __importDefault(require("./routes/products.route"));
 const users_route_1 = __importDefault(require("./routes/users.route"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
-const result = dotenv_1.default.config({ path: `${__dirname}/config.env` });
-console.log(result);
+console.log("node_env", process.env.NODE_ENV);
+const result = dotenv_1.default.config({ path: `${__dirname}/${process.env.NODE_ENV === 'production' ? 'config.env.local' : 'config.env.production'}` });
 const dbString = process.env.DATABASE || '';
 mongoose_1.default.connect(dbString).then(() => {
     console.log('Connected to MongoDB');
