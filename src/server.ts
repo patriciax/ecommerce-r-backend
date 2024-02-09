@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { initCloudinary } from './config/cloudinary';
 import productRoutes from './routes/products.route'
 import userRoutes from './routes/users.route'
+import categoryRoutes from './routes/categories.route'
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
@@ -26,6 +27,7 @@ app.use(express.static('uploads'))
 
 app.use("/api/v1/products", productRoutes)
 app.use("/api/v1/users", userRoutes)
+app.use("/api/v1/categories", categoryRoutes)
 
 app.use("/api/v1/dashboard/users", userRoutes)
 

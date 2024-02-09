@@ -1,10 +1,10 @@
 import { Request, Response } from 'express'
 import {Product} from './../models/product.schema'
-import cloudinary from 'cloudinary'
 import { APIFeatures } from '../utils/apiFeatures'
 import { maxImagesCount } from "../utils/maxImagesCount";  
 import AWS from "aws-sdk";
 import fs from "fs/promises";
+import { digitalOceanUpload } from '../utils/digitalOceanSpaces';
 
 export class ProductController {
 
@@ -33,23 +33,13 @@ export class ProductController {
             const images:Array<String> = []
         
             let base64Image = req.body.mainImage.split(';base64,').pop();
-            const mimeType = this.decodeBase64mimetype(base64Image) 
-            const fileName = Date.now()
-
-            await fs.writeFile(`uploads/${fileName}.${mimeType}`, base64Image, {encoding: 'base64'});
-            const file = await fs.readFile(`uploads/${fileName}.${mimeType}`);
-            mainImagePath = await this.digitalOceanSpaces(file, fileName.toString(), mimeType);
-
+            mainImagePath = await digitalOceanUpload(base64Image)
+            
             for(let i = 0; i < req.body.images.length; i++) {
                 const image = req.body.images[i];
-                let base64Image = req.body.mainImage.split(';base64,').pop();
-                let mimeType = this.decodeBase64mimetype(base64Image) 
-                let fileName = Date.now()
+                let base64Image = image.split(';base64,').pop();
 
-                await fs.writeFile(`uploads/${fileName}.${mimeType}`, base64Image, {encoding: 'base64'});
-                const file = await fs.readFile(`uploads/${fileName}.${mimeType}`);
-
-                const imagePath: any = await this.digitalOceanSpaces(file, fileName.toString(), mimeType);
+                const imagePath: any = await digitalOceanUpload(base64Image)
                 images.push(`${process.env.CDN_ENDPOINT}/${imagePath}`);
             }
             
@@ -73,39 +63,6 @@ export class ProductController {
         }
 
     }
-
-    cloudinaryImageUploadMethod = async (file: any) => {
-        return new Promise(resolve => {
-            cloudinary.v2.uploader.upload(file, (_err: any, res: any) => {
-            resolve({
-              res: res.secure_url,
-            })
-          })
-        })
-    }
-
-    private uploadDataPromise = async (file: any, name:string, mimetype: string) => {
-
-        const spacesEndpoint = new AWS.Endpoint(process.env.DO_SPACES_ENDPOINT || '');
-        const s3 = new AWS.S3({endpoint: spacesEndpoint, accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY});
-
-        return new Promise((resolve, reject)=> {
-            s3.putObject({Bucket: process.env.DO_SPACES_NAME || '', Key: name, Body: file, ACL: "public-read"}, (err, data) => {
-                if (err) return reject(err);
-                resolve(data);
-            });
-        })
-
-        
-    }
-
-    digitalOceanSpaces = async (file: any, name:string, mimetype:string) => {
-
-        await this.uploadDataPromise(file, name, mimetype);
-        return `${name}`
-
-    }
-
 
     public products = async(req:Request, res:Response) : Promise<any> => {
             
@@ -152,13 +109,13 @@ export class ProductController {
 
             if (req.files && 'mainImage' in req.files) {
                 const mainImage = req.files['mainImage'][0] as Express.Multer.File;
-                mainImagePath = await this.cloudinaryImageUploadMethod(mainImage.path);
+                mainImagePath = "" //await this.cloudinaryImageUploadMethod(mainImage.path);
                 req.body.mainImage = mainImagePath.res;
             }
 
             if(req.files && 'images' in req.files) {
                 for(let i = 0; i < req.files['images'].length; i++) {
-                    const imagePath: any = await this.cloudinaryImageUploadMethod(req.files['images'][i].path);
+                    const imagePath: any = "" //await this.cloudinaryImageUploadMethod(req.files['images'][i].path);
                     newImages.push(imagePath.res);
                 }
                 req.body.images = newImages;
