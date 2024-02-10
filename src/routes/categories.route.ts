@@ -24,5 +24,6 @@ router.delete('/:id', authMiddleware,  categoryController.deleteCategory)
 
 router.get('/', authMiddleware, categoryController.categories)
 router.get('/:id', categoryController.getCategory)
+router.patch('/:id', categoryController.updateCategory)
 
 export default router;

@@ -2,9 +2,13 @@ import express from 'express'
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { initCloudinary } from './config/cloudinary';
+
 import productRoutes from './routes/products.route'
 import userRoutes from './routes/users.route'
 import categoryRoutes from './routes/categories.route'
+import sizeRoutes from './routes/sizes.route'
+import colorRoutes from './routes/colors.route'
+
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
@@ -28,8 +32,8 @@ app.use(express.static('uploads'))
 app.use("/api/v1/products", productRoutes)
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/categories", categoryRoutes)
-
-app.use("/api/v1/dashboard/users", userRoutes)
+app.use("/api/v1/sizes", sizeRoutes)
+app.use("/api/v1/colors", colorRoutes)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
