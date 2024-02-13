@@ -1,15 +1,15 @@
 import { Router } from "express";
 import { ColorController } from "../controllers/colorController";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { authMiddleware, restrictsTo } from "../middlewares/auth.middleware";
 
 const router = Router();
 const colorController = new ColorController();
 
-router.post('/', authMiddleware, colorController.createColor)
-router.delete('/:id', authMiddleware,  colorController.deleteColor)
+router.post('/', authMiddleware, restrictsTo(['COLOR-CREATE']), colorController.createColor)
+router.delete('/:id', authMiddleware, restrictsTo(['COLOR-DELETE']),  colorController.deleteColor)
 
-router.get('/', authMiddleware, colorController.colors)
-router.get('/:id', authMiddleware, colorController.getColor)
-router.patch('/:id', authMiddleware, colorController.updateColor)
+router.get('/', colorController.colors)
+router.get('/:id', colorController.getColor)
+router.patch('/:id', authMiddleware, restrictsTo(['COLOR-UPDATE']), colorController.updateColor)
 
 export default router;

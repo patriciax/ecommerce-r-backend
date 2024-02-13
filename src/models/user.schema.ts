@@ -1,4 +1,4 @@
-import { InferSchemaType, Schema, model } from "mongoose";
+import { InferSchemaType, Query, Schema, model } from "mongoose";
 import bcrypt from 'bcrypt'
 import { Role } from "./role.schema";
 
@@ -33,6 +33,10 @@ const UserSchema = new Schema({
     createdAt:{
         type: Date,
         default: Date.now()
+    },
+    deletedAt:{
+        type: Date,
+        default: null
     }
 })
 
@@ -40,6 +44,11 @@ UserSchema.pre('save', async function(next){
     if(this.password && this.isModified('password')){
         this.password = await bcrypt.hash(this.password, 10)
     }
+    next()
+})
+
+UserSchema.pre<Query<any, any>>(/^find/, function(next){
+    this.find({deletedAt: null})
     next()
 })
 

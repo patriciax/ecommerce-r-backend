@@ -3,7 +3,7 @@ import { LoginController } from "../controllers/loginController";
 import {RegisterController} from "../controllers/registerController";
 import { registerValidator } from "../validators/register.validator";
 import { PasswordRestoreController } from "../controllers/passwordRestoreController";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { authMiddleware, restrictsTo } from "../middlewares/auth.middleware";
 import { UserController } from "../controllers/userController";
 
 const router = Router();
@@ -23,5 +23,11 @@ router.post('/restore-pass/verify-otp', passwordRestoreController.verifyPassword
 router.patch('/restore-pass/update-password', passwordRestoreController.updatePassword)
 
 router.patch('/update-profile', authMiddleware, userController.updateProfile)
+
+router.post('/employee', authMiddleware, restrictsTo(['EMPLOYEE-CREATE']), userController.createEmployee)
+router.get('/employee', authMiddleware, restrictsTo(['EMPLOYEE-LIST']), userController.employees)
+router.get('/employee/:id', authMiddleware, restrictsTo(['EMPLOYEE-LIST']), userController.employee)
+router.delete('/employee/:id', authMiddleware, restrictsTo(['EMPLOYEE-DELETE']), userController.deleteEmployee)
+router.patch('/employee/:id', authMiddleware, userController.updateEmployee)
 
 export default router;

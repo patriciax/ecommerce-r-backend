@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { CategoryController } from "../controllers/categoryController";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { authMiddleware, restrictsTo } from "../middlewares/auth.middleware";
 import multer from "multer";
 import { maxImagesCount } from "../utils/maxImagesCount";
 
@@ -19,11 +19,11 @@ const upload = multer({storage: storage})
 const router = Router();
 const categoryController = new CategoryController();
 
-router.post('/', authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), categoryController.createCategory)
-router.delete('/:id', authMiddleware,  categoryController.deleteCategory)
+router.post('/', authMiddleware, restrictsTo(['CATEGORY-CREATE']),  upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), categoryController.createCategory)
+router.delete('/:id', authMiddleware, restrictsTo(['CATEGORY-DELETE']),  categoryController.deleteCategory)
 
-router.get('/', authMiddleware, categoryController.categories)
+router.get('/', categoryController.categories)
 router.get('/:id', categoryController.getCategory)
-router.patch('/:id', categoryController.updateCategory)
+router.patch('/:id', authMiddleware, restrictsTo(['CATEGORY-UPDATE']), categoryController.updateCategory)
 
 export default router;

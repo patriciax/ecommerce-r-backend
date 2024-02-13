@@ -8,24 +8,9 @@ import { digitalOceanUpload } from '../utils/digitalOceanSpaces';
 
 export class ProductController {
 
-    private decodeBase64mimetype = (base64:string) =>{
-        const signatures:any = {
-            JVBERi0: 'pdf',
-            R0lGODdh: 'gif',
-            R0lGODlh: 'gif',
-            iVBORw0KGgo: 'png',
-            '/9j/': 'jpg',
-        };
-        
-
-        for(const sign in signatures)
-            if(base64.startsWith(sign))
-                return signatures[sign];
-        
-    }
-
     public createProduct = async(req:Request, res:Response) : Promise<any> => {
 
+        console.log(req.body)
         let mainImagePath:any = null
 
         try{
@@ -44,6 +29,9 @@ export class ProductController {
             }
             
             const product = await Product.create({
+                category: req.body.category,
+                sizes: req.body.sizes.map((size: any) => size.id),
+                colors: req.body.colors.map((color: any) => color.id),
                 name: req.body.title,
                 description: req.body.description,
                 stock: req.body.stock,
@@ -121,7 +109,17 @@ export class ProductController {
                 req.body.images = newImages;
             }
                         
-            const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
+            const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
+                category: req.body.category,
+                sizes: req.body.sizes.map((size: any) => size.id),
+                colors: req.body.colors.map((color: any) => color.id),
+                name: req.body.title,
+                description: req.body.description,
+                stock: req.body.stock,
+                price: req.body.price,
+                mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
+                //images: images
+            }, {
                 new: true,
                 runValidators: true
             });
@@ -185,7 +183,9 @@ export class ProductController {
         
         try{
 
-            const product = await Product.findByIdAndDelete(req.params.id);
+            const product = await Product.findByIdAndUpdate(req.params.id, {
+                deletedAt: Date.now(),
+            });
 
             if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
 
