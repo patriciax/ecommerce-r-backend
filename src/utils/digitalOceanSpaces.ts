@@ -3,7 +3,6 @@ import fs from "fs/promises";
 
 const decodeBase64mimetype = (base64:string) =>{
     const signatures:any = {
-        JVBERi0: 'pdf',
         R0lGODdh: 'gif',
         R0lGODlh: 'gif',
         iVBORw0KGgo: 'png',

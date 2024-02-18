@@ -14,7 +14,9 @@ export class CategoryController {
 
         if(!req.body.title) errors.push('Nombre de categoría es requerido')
         if(!req.body.titleEnglish) errors.push('Nombre de categoría en inglés es requerido')
+        if(!req.body.categoryType) errors.push('Tipo de categoría es requerido')
         if(!req.body.mainImage) errors.push('Imagen es requerida')
+
 
         return errors
 
@@ -26,6 +28,7 @@ export class CategoryController {
 
         if(!req.body.title) errors.push('Nombre de categoría es requerido')
         if(!req.body.titleEnglish) errors.push('Nombre de categoría en inglés es requerido')
+        if(!req.body.categoryType) errors.push('Tipo de categoría es requerido')
 
         return errors
 
@@ -56,6 +59,8 @@ export class CategoryController {
                 name: req.body.title,
                 englishName: req.body.titleEnglish,
                 image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
+                categoryType: req.body.categoryType,
+                parent_id: req.body.categoryParent  || undefined,
                 slug: slug
             })
 
@@ -122,6 +127,8 @@ export class CategoryController {
                 name: req.body.title,
                 englishName: req.body.titleEnglish,
                 image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
+                categoryType: req.body.categoryType,
+                parent_id: req.body.categoryParent  || undefined,
             }, {
                 new: true,
                 runValidators: true

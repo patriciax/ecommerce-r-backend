@@ -7,12 +7,50 @@ import slugify from 'slugify';
 
 export class ProductController {
 
+    private validateFormCreate =  (req:Request) => {
+                
+        const errors = []
+
+        if(!req.body.title) errors.push('Titulo es requerido')
+        if(!req.body.titleEnglish) errors.push('Titulo en inglés es requerido')
+        if(!req.body.description) errors.push('Descripción es requerido')
+        if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
+        if(!req.body.price) errors.push('Price es requerido')
+        if(!req.body.stock) errors.push('Stock es requerido')
+        if(!req.body.categories) errors.push('Price es requerido')
+        if(!req.body.sizes) errors.push('Tallas son requeridas')
+        if(!req.body.colors) errors.push('Precio es requerido')
+        if(!req.body.mainImage) errors.push('Imágen principal es requerida')
+
+        return errors
+    }
+
+    private validateFormUpdate =  (req:Request) => {
+                
+        const errors = []
+
+        if(!req.body.title) errors.push('Titulo es requerido')
+        if(!req.body.titleEnglish) errors.push('Titulo en inglés es requerido')
+        if(!req.body.description) errors.push('Descripción es requerido')
+        if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
+        if(!req.body.price) errors.push('Price es requerido')
+        if(!req.body.stock) errors.push('Stock es requerido')
+        if(!req.body.categories) errors.push('Price es requerido')
+        if(!req.body.sizes) errors.push('Tallas son requeridas')
+        if(!req.body.colors) errors.push('Precio es requerido')
+
+        return errors
+    }
+
     public createProduct = async(req:Request, res:Response) : Promise<any> => {
 
         let mainImagePath:any = null
 
         try{
-        
+            
+            const errors = this.validateFormCreate(req)
+            if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
+
             const images:Array<String> = []
         
             let base64Image = req.body.mainImage.split(';base64,').pop();
@@ -92,6 +130,9 @@ export class ProductController {
     public updateProduct = async(req:Request, res:Response) => {
 
         try{
+
+            const errors = this.validateFormUpdate(req)
+            if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
 
             let mainImagePath:any = null    
             const newImages:Array<String> = []

@@ -13,6 +13,15 @@ const CategorySchema = new Schema({
         type: String,
         require: true
     },
+    parent_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'Category'
+    },
+    categoryType: {
+        type: String,
+        enum: ['main', 'sub', 'final'],
+        default: 'main'
+    },
     slug:{
         type: String,
         unique: true
