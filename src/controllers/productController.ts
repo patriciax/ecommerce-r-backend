@@ -4,6 +4,9 @@ import { APIFeatures } from '../utils/apiFeatures'
 import { maxImagesCount } from "../utils/maxImagesCount";  
 import { digitalOceanDelete, digitalOceanUpload } from '../utils/digitalOceanSpaces';
 import slugify from 'slugify';
+import { Category } from '../models/category.schema';
+import { Size } from '../models/size.schema';
+import { Color } from '../models/color.schema';
 
 export class ProductController {
 
@@ -29,8 +32,8 @@ export class ProductController {
                 
         const errors = []
 
-        if(!req.body.title) errors.push('Titulo es requerido')
-        if(!req.body.titleEnglish) errors.push('Titulo en inglés es requerido')
+        if(!req.body.name) errors.push('Titulo es requerido')
+        if(!req.body.nameEnglish) errors.push('Titulo en inglés es requerido')
         if(!req.body.description) errors.push('Descripción es requerido')
         if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
         if(!req.body.price) errors.push('Price es requerido')
@@ -40,6 +43,61 @@ export class ProductController {
         if(!req.body.colors) errors.push('Precio es requerido')
 
         return errors
+    }
+
+    private replaceAccents(str:string) {
+        return str?.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    private setTags = async (tags:any) => {
+
+        const excludeWords = ["de", "para", "y", "en", "con", "la", "el", "los", "las", "un", "una", "unos", "unas", "es", "son", "al", "del", "por", "lo", "como", "mas", "muy", "sobre", "bajo", "entre", "hacia", "desde", "hasta", "ante", "tras", "durante", "segun", "sin", "sino", "si", "no", "ni", "tambien", "ademas", "aunque", "pero", "of", "for", "and", "in", "with", "the", "the", "the", "the", "a", "an", "somes", "somes", "is", "are", "at", "of", "for", "lo", "as", "more", "very", "about", "under", "between", "towards", "from", "until", "before", "after", "during", "according to", "without", "but", "if", "no", "nor", "also ", "in addition", "although", "but"]
+        
+        
+        const finalTags: string[] = [];
+        const categories = await Category.find({"_id" : { $in : tags.categories}})
+        const sizes = await Size.find({"_id" : { $in : tags.sizes}})
+        const colors = await Color.find({"_id" : { $in : tags.colors}})
+
+        if(categories){
+            categories.forEach((category:any) => {
+                category.name.split(' ').forEach((word:any) => {
+                    if(!excludeWords.includes(this.replaceAccents(word))) finalTags.push(this.replaceAccents(word?.toLowerCase()))
+                })
+                category.englishName.split(' ').forEach((word:any) => {
+                    if(!excludeWords.includes(this.replaceAccents(word))) finalTags.push(this.replaceAccents(word?.toLowerCase()))
+                })
+            })
+        }
+
+        if(sizes){
+            sizes.forEach((size:any) => {
+                
+                if(!excludeWords.includes(this.replaceAccents(size.name))) finalTags.push(this.replaceAccents(size.name?.toLowerCase()))
+                if(!excludeWords.includes(this.replaceAccents(size.englishName))) finalTags.push(this.replaceAccents(size.englishName?.toLowerCase()))
+                
+            })
+        }
+
+        if(colors){
+            colors.forEach((color:any) => {
+                
+                if(!excludeWords.includes(this.replaceAccents((color.name)))) finalTags.push(this.replaceAccents(color.name?.toLowerCase()))
+                if(!excludeWords.includes(this.replaceAccents(color.englishName))) finalTags.push(this.replaceAccents(color.englishName?.toLowerCase()))
+                
+            })
+        }
+
+        tags.name.split(' ').forEach((word:any) => {
+            if(!excludeWords.includes(this.replaceAccents(word))) finalTags.push(this.replaceAccents(word?.toLowerCase()))
+        })
+
+        tags.nameEnglish.split(' ').forEach((word:any) => {
+            if(!excludeWords.includes(this.replaceAccents(word))) finalTags.push(this.replaceAccents(word?.toLowerCase()))
+        })
+
+        return finalTags
+
     }
 
     public createProduct = async(req:Request, res:Response) : Promise<any> => {
@@ -71,8 +129,18 @@ export class ProductController {
             }
             slug = slugify(slug, {lower: true})
 
+            const fieldsToTag = {
+                categories: req.body.categories.map((category: any) => category.id),
+                name: req.body.title,
+                nameEnglish: req.body.titleEnglish,
+                sizes: req.body.sizes.map((size: any) => size.id),
+                colors: req.body.colors.map((color: any) => color.id)
+            }
+
+            const tags = await this.setTags(fieldsToTag)
+
             const product = await Product.create({
-                categories: req.body.categories.map((size: any) => size.id),
+                categories: req.body.categories.map((category: any) => category.id),
                 sizes: req.body.sizes.map((size: any) => size.id),
                 colors: req.body.colors.map((color: any) => color.id),
                 name: req.body.title,
@@ -84,7 +152,8 @@ export class ProductController {
                 priceDiscount: req.body.priceDiscount,
                 mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                 images: images,
-                slug: slug
+                slug: slug,
+                tags: tags
             })
 
             return res.status(201).json({
@@ -165,6 +234,16 @@ export class ProductController {
             product.images.forEach((image: any) => {
                 images.push(image);
             })
+
+            const fieldsToTag = {
+                categories: req.body.categories.map((category: any) => category.id ?? category),
+                name: req.body.name,
+                nameEnglish: req.body.nameEnglish,
+                sizes: req.body.sizes.map((size: any) => size.id ?? size),
+                colors: req.body.colors.map((color: any) => color.id ?? color),
+            }
+
+            const tags = await this.setTags(fieldsToTag)
 
             const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
                 categories: req.body.categories.map((category: any) => category.id ?? category),

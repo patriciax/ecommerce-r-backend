@@ -44,6 +44,7 @@ const ProductSchema = new Schema({
     categories: [
         {type: Schema.Types.ObjectId, ref: Category}
     ],
+    tags: [String],
     images: [String],
     slug: {
         type: String,
