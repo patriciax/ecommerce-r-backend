@@ -19,7 +19,7 @@ const upload = multer({storage: storage})
 const router = Router();
 const productController = new ProductController();
 
-router.delete('/:id/secondary-image', authMiddleware, productController.deleteSecondaryImage)
+router.delete('/:id/secondary-image/:imageId', authMiddleware, productController.deleteSecondaryImage)
 router.delete('/:id', authMiddleware, productController.deleteProduct)
 router.post('/', authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), productController.createProduct)
 router.patch('/:id', authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), productController.updateProduct)

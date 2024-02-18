@@ -1,27 +1,62 @@
 import { Request, Response } from 'express'
 import {Category} from './../models/category.schema'
-import { digitalOceanUpload } from '../utils/digitalOceanSpaces'
-import cloudinary from 'cloudinary'
+import { digitalOceanDelete, digitalOceanUpload } from '../utils/digitalOceanSpaces'
+// import cloudinary from 'cloudinary'
 import { APIFeatures } from '../utils/apiFeatures'
-import { maxImagesCount } from "../utils/maxImagesCount";  
+import { maxImagesCount } from "../utils/maxImagesCount"; 
+import slugify from 'slugify'; 
 
 export class CategoryController {
+
+    private validateFormCreate = (req:Request) => {
+
+        const errors = []
+
+        if(!req.body.title) errors.push('Nombre de categoría es requerido')
+        if(!req.body.titleEnglish) errors.push('Nombre de categoría en inglés es requerido')
+        if(!req.body.mainImage) errors.push('Imagen es requerida')
+
+        return errors
+
+    }
+
+    private validateFormUpdate = (req:Request) => {
+
+        const errors = []
+
+        if(!req.body.title) errors.push('Nombre de categoría es requerido')
+        if(!req.body.titleEnglish) errors.push('Nombre de categoría en inglés es requerido')
+
+        return errors
+
+    }
 
     public createCategory = async(req:Request, res:Response) : Promise<any> => {
 
         let mainImagePath:any = null
 
         try{
-        
+            
+            const errors = this.validateFormCreate(req)
+            if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
+
             const images:Array<String> = []
         
             let base64Image = req.body.mainImage.split(';base64,').pop();
 
             mainImagePath = await digitalOceanUpload(base64Image)
-            
+
+            let slug = `${req.body.title}`
+            const results = await Category.find({slug: slug})
+            if(results.length > 0) {
+                slug = `${slug}-${Date.now()}`
+            }
+            slug = slugify(slug, {lower: true})
             const category = await Category.create({
                 name: req.body.title,
+                englishName: req.body.titleEnglish,
                 image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
+                slug: slug
             })
 
             return res.status(201).json({
@@ -45,9 +80,13 @@ export class CategoryController {
             .limitFields()
             .paginate()
             const categories = await features.query
+
+            const totalCategories = await Category.find();
+            const totalPages = totalCategories.length / Number(req?.query?.limit || 1);
             
             return res.status(200).json({
                 status: 'success',
+                totalPages: Math.ceil(totalPages),
                 results: categories.length,
                 data: {
                     categories
@@ -64,6 +103,9 @@ export class CategoryController {
 
         try{
 
+            const errors = this.validateFormUpdate(req)
+            if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
+
             let mainImagePath:any = null    
             const category = await Category.findById(req.params.id);
 
@@ -72,11 +114,13 @@ export class CategoryController {
 
             if (req.body.mainImage) {
                 let base64Image = req.body.mainImage.split(';base64,').pop();
-                mainImagePath = await digitalOceanUpload(base64Image)
+                mainImagePath = await digitalOceanUpload(base64Image);
+                digitalOceanDelete(category?.image?.split('/').pop() || '');
             }
 
             const updatedCategory = await Category.findByIdAndUpdate(req.params.id, {
                 name: req.body.title,
+                englishName: req.body.titleEnglish,
                 image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
             }, {
                 new: true,
@@ -91,7 +135,7 @@ export class CategoryController {
             })
 
         }catch(err:any){
-
+            
             return res.status(404).json({
                 status: 'fail',
                 message: err.message

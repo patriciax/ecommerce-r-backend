@@ -2,15 +2,13 @@ import { Request, Response } from 'express'
 import {Product} from './../models/product.schema'
 import { APIFeatures } from '../utils/apiFeatures'
 import { maxImagesCount } from "../utils/maxImagesCount";  
-import AWS from "aws-sdk";
-import fs from "fs/promises";
-import { digitalOceanUpload } from '../utils/digitalOceanSpaces';
+import { digitalOceanDelete, digitalOceanUpload } from '../utils/digitalOceanSpaces';
+import slugify from 'slugify';
 
 export class ProductController {
 
     public createProduct = async(req:Request, res:Response) : Promise<any> => {
 
-        console.log(req.body)
         let mainImagePath:any = null
 
         try{
@@ -27,17 +25,28 @@ export class ProductController {
                 const imagePath: any = await digitalOceanUpload(base64Image)
                 images.push(`${process.env.CDN_ENDPOINT}/${imagePath}`);
             }
-            
+
+            let slug = `${req.body.title}`
+            const results = await Product.find({slug: slug})
+            if(results.length > 0) {
+                slug = `${slug}-${Date.now()}`
+            }
+            slug = slugify(slug, {lower: true})
+
             const product = await Product.create({
-                category: req.body.category,
+                categories: req.body.categories.map((size: any) => size.id),
                 sizes: req.body.sizes.map((size: any) => size.id),
                 colors: req.body.colors.map((color: any) => color.id),
                 name: req.body.title,
+                nameEnglish: req.body.titleEnglish,
                 description: req.body.description,
+                descriptionEnglish: req.body.descriptionEnglish,
                 stock: req.body.stock,
                 price: req.body.price,
+                priceDiscount: req.body.priceDiscount,
                 mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
-                images: images
+                images: images,
+                slug: slug
             })
 
             return res.status(201).json({
@@ -61,9 +70,13 @@ export class ProductController {
             .limitFields()
             .paginate()
             const products = await features.query
+
+            const totalProducts = await Product.find();
+            const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
             
             return res.status(200).json({
                 status: 'success',
+                totalPages: Math.ceil(totalPages),
                 results: products.length,
                 data: {
                     products
@@ -85,44 +98,51 @@ export class ProductController {
             const product = await Product.findById(req.params.id);
 
             if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
-            mainImagePath = product.mainImage;
-
-            const productImages = product.images;
-
-            if (req.files && 'images' in req.files) {
-                if (productImages.length + req.files['images'].length > maxImagesCount) {
-                    return res.status(400).json({ status: 'fail', message: 'You can only have 3 images per product' });
+            
+            const images:Array<String> = []
+            
+            if(req.body.mainImage) {
+                let base64Image = req.body.mainImage.split(';base64,').pop();
+                mainImagePath = await digitalOceanUpload(base64Image)
+                digitalOceanDelete(product?.mainImage?.split('/').pop() || '');
+            }
+            
+            if(req.body.images) {
+                for(let i = 0; i < req.body.images.length; i++) {
+                    const image = req.body.images[i];
+                    let base64Image = image.split(';base64,').pop();
+    
+                    const imagePath: any = await digitalOceanUpload(base64Image)
+                    images.push(`${process.env.CDN_ENDPOINT}/${imagePath}`);
                 }
             }
 
-            if (req.files && 'mainImage' in req.files) {
-                const mainImage = req.files['mainImage'][0] as Express.Multer.File;
-                mainImagePath = "" //await this.cloudinaryImageUploadMethod(mainImage.path);
-                req.body.mainImage = mainImagePath.res;
+            if(product.images.length + images.length > maxImagesCount) {
+                return res.status(422).json({ status: 'fail', message: `You can only have ${maxImagesCount} images` });
             }
 
-            if(req.files && 'images' in req.files) {
-                for(let i = 0; i < req.files['images'].length; i++) {
-                    const imagePath: any = "" //await this.cloudinaryImageUploadMethod(req.files['images'][i].path);
-                    newImages.push(imagePath.res);
-                }
-                req.body.images = newImages;
-            }
-                        
+            product.images.forEach((image: any) => {
+                images.push(image);
+            })
+
             const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
-                category: req.body.category,
-                sizes: req.body.sizes.map((size: any) => size.id),
-                colors: req.body.colors.map((color: any) => color.id),
-                name: req.body.title,
+                categories: req.body.categories.map((category: any) => category.id ?? category),
+                sizes: req.body.sizes.map((size: any) => size.id ?? size),
+                colors: req.body.colors.map((color: any) => color.id ?? color),
+                name: req.body.name,
+                nameEnglish: req.body.nameEnglish,
                 description: req.body.description,
+                descriptionEnglish: req.body.descriptionEnglish,
                 stock: req.body.stock,
                 price: req.body.price,
-                mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
-                //images: images
+                priceDiscount: req.body.priceDiscount,
+                mainImage: req.body.mainImage ? `${process.env.CDN_ENDPOINT}/${mainImagePath}` : product.mainImage,
+                images: req.body.images.length > 0 ? images : product.images
             }, {
                 new: true,
                 runValidators: true
             });
+
 
             return res.status(200).json({
                 status: 'success',
@@ -156,8 +176,10 @@ export class ProductController {
                 return res.status(400).json({ status: 'fail', message: 'There are no secondary images to delete' });
             }
 
-            const secondaryImages = productImages.filter((image: any) => image !== req.body.image);
-
+            const productImageToDelete = productImages.find(image => image.includes(req.params.imageId))
+            digitalOceanDelete(productImageToDelete?.split('/').pop() || '');
+            const secondaryImages = productImages.filter((image: any) => image !== productImages.find(image => image.includes(req.params.imageId)));
+            
             product.images = secondaryImages;
             product.save();
 

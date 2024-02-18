@@ -5,6 +5,10 @@ const ColorSchema = new Schema({
         type: String,
         require: true,
     },
+    englishName:{
+        type: String,
+        require: true
+    },
     hex: {
         type: String,
         require: true,

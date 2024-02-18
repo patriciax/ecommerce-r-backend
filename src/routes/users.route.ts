@@ -17,6 +17,7 @@ router.get('/user-info', authMiddleware, userController.getUserInfo)
 router.post('/register', registerValidator, registerController.signup)
 router.post('/resend-email-otp', registerController.resendEmailOtp)
 router.post('/verify-email-otp', registerController.verifyEmailOtp)
+router.post('/verify-repeated-email', userController.verifyRepeatedEmail)
 
 router.post('/restore-pass/otp', passwordRestoreController.setRestorePasswordOtp)
 router.post('/restore-pass/verify-otp', passwordRestoreController.verifyPasswordOtp)

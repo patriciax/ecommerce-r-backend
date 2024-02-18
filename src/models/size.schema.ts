@@ -5,6 +5,10 @@ const SizeSchema = new Schema({
         type: String,
         require: true,
     },
+    englishName:{
+        type: String,
+        require: true
+    },
     createdAt:{
         type: Date,
         default: Date.now

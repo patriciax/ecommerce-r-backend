@@ -5,9 +5,17 @@ const CategorySchema = new Schema({
         type: String,
         require: true,
     },
+    englishName:{
+        type: String,
+        require: true
+    },
     image: {
         type: String,
         require: true
+    },
+    slug:{
+        type: String,
+        unique: true
     },
     createdAt:{
         type: Date,

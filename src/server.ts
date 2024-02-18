@@ -1,7 +1,7 @@
 import express from 'express'
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { initCloudinary } from './config/cloudinary';
+//import { initCloudinary } from './config/cloudinary';
 
 import productRoutes from './routes/products.route'
 import userRoutes from './routes/users.route'
@@ -19,7 +19,7 @@ mongoose.connect(dbString).then(() => {
     console.log('Connected to MongoDB')
 })
 
-initCloudinary()
+//initCloudinary()
 
 const app = express();
 app.use(bodyParser.json({limit: '35mb'}));

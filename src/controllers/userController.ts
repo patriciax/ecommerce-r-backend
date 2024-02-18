@@ -5,6 +5,26 @@ import { APIFeatures } from "../utils/apiFeatures";
 
 export class UserController{
 
+    private validateFormCreate =  (req:Request) => {
+            
+            const errors = []
+    
+            if(!req.body.name) errors.push('Nombre es requerido')
+            if(!req.body.email) errors.push('Email es requerido')
+            if(!req.body.password) errors.push('Contraseña es requerida')
+    
+            return errors
+    }
+
+    private validateFormUpdate =  (req:Request) => {
+            
+        const errors = []
+
+        if(!req.body.name) errors.push('Nombre es requerido')
+
+        return errors
+}
+
     public updateProfile = async(req:Request, res: Response) => {
 
         try{
@@ -51,6 +71,9 @@ export class UserController{
 
         try{
 
+            const errors = this.validateFormCreate(req)
+            if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
+
             const role = await Role.findOne({name: "EMPLOYEE"});
 
             if(!role){
@@ -88,11 +111,15 @@ export class UserController{
 
             const role = await Role.findOne({name: "EMPLOYEE"});
 
-            const features = new APIFeatures(User.find({role: role?._id}), req.query)
+            const features = new APIFeatures(User.find({role: role?._id}), req.query).paginate()
             const users = await features.query
+
+            const totalEmployees = await User.find({role: role?._id});
+            const totalPages = totalEmployees.length / Number(req?.query?.limit || 1);
             
             return res.status(200).json({
                 status: 'success',
+                totalPages: Math.ceil(totalPages),
                 results: users.length,
                 data: {
                     users
@@ -109,7 +136,13 @@ export class UserController{
     public deleteEmployee = async(req:Request, res:Response) => {
         
         try{
-            const employee = await User.findByIdAndUpdate(req.params.id, {deletedAt: new Date()});
+
+            const employeeToDelete = await User.findById(req.params.id);
+
+            const employee = await User.findByIdAndUpdate(req.params.id, {
+                emeail: `${employeeToDelete?.email} - ${Date.now()}`,
+                deletedAt: new Date()
+            });
 
             if (!employee) return res.status(404).json({ status: 'fail', message: 'No employee found with that ID' });
 
@@ -148,13 +181,15 @@ export class UserController{
     public updateEmployee = async(req:Request, res:Response) => {
 
         try{
-   
+            
+            const errors = this.validateFormUpdate(req)
+            if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
+
             const employee = await User.findById(req.params.id);
 
             if (!employee) return res.status(404).json({ status: 'fail', message: 'No employee found with that ID' });
 
             employee.name = req.body.name;
-            employee.email = req.body.email;
             if(req.body.password)
                 employee.password = req.body.password;
             employee.save()
@@ -173,6 +208,32 @@ export class UserController{
                 message: err.message
             })
 
+        }
+
+    }
+
+    public verifyRepeatedEmail = async (req:Request, res:Response) => {
+
+        try{
+
+            const user = await User.findOne({email: req.body.email});
+
+            if(user) 
+                return res.status(200).json({
+                    "status": "success",
+                    "message": "Email already exists"
+                })
+
+            return res.status(404).json({
+                "status": "fail",
+                "message": "User not found"
+            })
+
+        }catch(err){
+            return res.status(500).json({
+                "status": "error",
+                "message": "Something went wrong"
+            })
         }
 
     }
