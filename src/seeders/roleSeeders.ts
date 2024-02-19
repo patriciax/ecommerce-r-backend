@@ -55,6 +55,8 @@ const permissions = [
     {role: "ADMIN", permission: "GIFT-CARD-UPDATE"},
     {role: "ADMIN", permission: "GIFT-CARD-DELETE"},
 
+    {role: "ADMIN", permission: "CLIENT-LIST"},
+
     //EMPLOYEE
 
     {role: "EMPLOYEE", permission: "PRODUCT-CREATE"},

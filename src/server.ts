@@ -9,6 +9,7 @@ import categoryRoutes from './routes/categories.route'
 import sizeRoutes from './routes/sizes.route'
 import colorRoutes from './routes/colors.route'
 import giftCardsRoutes from './routes/giftCards.route'
+import clientRoutes from './routes/clients.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -36,6 +37,7 @@ app.use("/api/v1/categories", categoryRoutes)
 app.use("/api/v1/sizes", sizeRoutes)
 app.use("/api/v1/colors", colorRoutes)
 app.use("/api/v1/gift-cards", giftCardsRoutes)
+app.use("/api/v1/clients", clientRoutes)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
