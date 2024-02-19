@@ -16,7 +16,10 @@ export class RegisterController{
 
             const user = await User.create({
                 name: req.body.name,
+                lastname: req.body.lastname,
                 email: req.body.email,
+                phone: req.body.phone,
+                address: req.body.address,
                 password: req.body.password,
                 emailOtp: emailOtpToCreate,
             });
@@ -24,13 +27,14 @@ export class RegisterController{
             const {password, emailOtp, role, ...data} = user.toJSON()
 
             const emailController = new EmailController()
-            emailController.sendEmail("emailVerify", user.email, "Email verification", {
+            emailController.sendEmail("emailVerify", user.email, "Verificación de email", {
                 name: user.name,
                 emailOtp: user.emailOtp
             })
 
             return res.status(201).json({
                 'status': 'success',
+                'message': 'EMAIL_VERIFICATION_SENT',
                 'data': {
                     user:data
                 }
@@ -38,9 +42,9 @@ export class RegisterController{
 
         }catch(error:any){
 
-            return res.status(400).json({
+            return res.status(500).json({
                 'status': 'error',
-                'message': error.message
+                'message': 'SOMETHING_WENT_WRONG'
             })
         }
 
@@ -55,7 +59,7 @@ export class RegisterController{
             if(!user){
                 return res.status(404).json({
                     status: 'fail',
-                    message: 'User not found'
+                    message: 'USER_NOT_FOUND'
                 })
             }
 
@@ -63,12 +67,12 @@ export class RegisterController{
 
             res.status(200).json({
                 status: 'success',
-                message: 'Email sent'
+                message: 'EMAIL_SENT'
             })
         }catch(error:any){
             return res.status(404).json({
                 status: 'fail',
-                message: 'User not found'
+                message: 'USER_NOT_FOUND'
             })
         }
 
@@ -82,19 +86,19 @@ export class RegisterController{
             if(!user){
                 return res.status(404).json({
                     status: 'fail',
-                    message: 'User not found'
+                    message: 'USER_NOT_FOUND'
                 })
             }
 
             return res.status(200).json({
                 status: 'success',
-                message: 'Email verified'
+                message: 'EMAIL_VERIFIED'
             })
 
         }catch(error:any){
             return res.status(404).json({
                 status: 'fail',
-                message: 'User not found'
+                message: 'USER_NOT_FOUND'
             })
         }
 

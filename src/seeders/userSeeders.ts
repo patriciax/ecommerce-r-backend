@@ -7,12 +7,14 @@ const usersList = [
         name: 'Admin',
         email: 'admin@example.com',
         password: '123456',
+        emailVerifiedAt: Date.now(),
         role: "ADMIN"
     },
     {
         name: 'Customer',
         email: 'customer@example.com',
         password: '123456',
+        emailVerifiedAt: Date.now(),
         role: "CUSTOMER"
     },
 ]

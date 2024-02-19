@@ -140,7 +140,7 @@ export class UserController{
             const employeeToDelete = await User.findById(req.params.id);
 
             const employee = await User.findByIdAndUpdate(req.params.id, {
-                emeail: `${employeeToDelete?.email} - ${Date.now()}`,
+                email: `${employeeToDelete?.email}-${Date.now()}`,
                 deletedAt: new Date()
             });
 
@@ -221,18 +221,18 @@ export class UserController{
             if(user) 
                 return res.status(200).json({
                     "status": "success",
-                    "message": "Email already exists"
+                    "message": "EMAIL_ALREADY_EXISTS"
                 })
 
             return res.status(404).json({
                 "status": "fail",
-                "message": "User not found"
+                "message": "USER_NOT_FOUND"
             })
 
         }catch(err){
             return res.status(500).json({
                 "status": "error",
-                "message": "Something went wrong"
+                "message": "SOMETHING_WENT_WRONG"
             })
         }
 

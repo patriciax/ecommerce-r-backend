@@ -13,7 +13,14 @@ export class LoginController {
             if(!user){
                 return res.status(404).json({
                     status: 'fail',
-                    message: 'User not found'
+                    message: 'USER_NOT_FOUND'
+                })
+            }
+
+            if(user.emailVerifiedAt === null){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: 'EMAIL_NOT_VERIFIED'
                 })
             }
 
@@ -21,7 +28,7 @@ export class LoginController {
             if(!isPasswordValid){
                 return res.status(404).json({
                     status: 'fail',
-                    message: 'User not found'
+                    message: 'USER_NOT_FOUND'
                 })
             }
 
@@ -30,15 +37,14 @@ export class LoginController {
 
             return res.status(200).json({
                 status: 'success',
-                message: 'User logged in successfully',
                 data: token
             })
 
         }catch(err:any){
 
-            return res.status(404).json({
+            return res.status(500).json({
                 status: 'fail',
-                message: err.message
+                message: 'SOMETHING_WENT_WRONG'
             })
 
         }

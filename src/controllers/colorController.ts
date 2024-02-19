@@ -10,7 +10,7 @@ export class ColorController {
 
         if(!req.body.title) errors.push('Nombre del color es requerido')
         if(!req.body.titleEnglish) errors.push('Nombre del color en inglés es requerido')
-        if(!req.body.hex) errors.push('Color es requerido')
+        if(!req.body.hexColor) errors.push('Color es requerido')
 
         return errors
 
