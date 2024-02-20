@@ -5,6 +5,7 @@ import { digitalOceanDelete, digitalOceanUpload } from '../utils/digitalOceanSpa
 import { APIFeatures } from '../utils/apiFeatures'
 import { maxImagesCount } from "../utils/maxImagesCount"; 
 import slugify from 'slugify'; 
+import { Product } from '../models/product.schema';
 
 export class CategoryController {
 
@@ -15,8 +16,7 @@ export class CategoryController {
         if(!req.body.title) errors.push('Nombre de categoría es requerido')
         if(!req.body.titleEnglish) errors.push('Nombre de categoría en inglés es requerido')
         if(!req.body.categoryType) errors.push('Tipo de categoría es requerido')
-        if(!req.body.mainImage) errors.push('Imagen es requerida')
-
+        // if(!req.body.mainImage) errors.push('Imagen es requerida')
 
         return errors
 
@@ -36,18 +36,18 @@ export class CategoryController {
 
     public createCategory = async(req:Request, res:Response) : Promise<any> => {
 
-        let mainImagePath:any = null
+        //let mainImagePath:any = null
 
         try{
             
             const errors = this.validateFormCreate(req)
             if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
 
-            const images:Array<String> = []
+            // const images:Array<String> = []
         
-            let base64Image = req.body.mainImage.split(';base64,').pop();
+            // let base64Image = req.body.mainImage.split(';base64,').pop();
 
-            mainImagePath = await digitalOceanUpload(base64Image)
+            // mainImagePath = await digitalOceanUpload(base64Image)
 
             let slug = `${req.body.title}`
             const results = await Category.find({slug: slug})
@@ -58,7 +58,7 @@ export class CategoryController {
             const category = await Category.create({
                 name: req.body.title,
                 englishName: req.body.titleEnglish,
-                image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
+                //image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                 categoryType: req.body.categoryType,
                 parent_id: req.body.categoryParent  || undefined,
                 slug: slug
@@ -111,22 +111,22 @@ export class CategoryController {
             const errors = this.validateFormUpdate(req)
             if(errors.length > 0) return res.status(422).json({ status: 'fail', message: errors })
 
-            let mainImagePath:any = null    
+            //let mainImagePath:any = null    
             const category = await Category.findById(req.params.id);
 
             if (!category) return res.status(404).json({ status: 'fail', message: 'No category found with that ID' });
-            mainImagePath = category.image;
+            // mainImagePath = category.image;
 
-            if (req.body.mainImage) {
-                let base64Image = req.body.mainImage.split(';base64,').pop();
-                mainImagePath = await digitalOceanUpload(base64Image);
-                digitalOceanDelete(category?.image?.split('/').pop() || '');
-            }
+            // if (req.body.mainImage) {
+            //     let base64Image = req.body.mainImage.split(';base64,').pop();
+            //     mainImagePath = await digitalOceanUpload(base64Image);
+            //     digitalOceanDelete(category?.image?.split('/').pop() || '');
+            // }
 
             const updatedCategory = await Category.findByIdAndUpdate(req.params.id, {
                 name: req.body.title,
                 englishName: req.body.titleEnglish,
-                image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
+                //image: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                 categoryType: req.body.categoryType,
                 parent_id: req.body.categoryParent  || undefined,
             }, {
@@ -155,9 +155,9 @@ export class CategoryController {
     public deleteCategory = async(req:Request, res:Response) => {
         
         try{
-            const product = await Category.findByIdAndUpdate(req.params.id, {deletedAt: new Date()});
+            const category = await Category.findByIdAndUpdate(req.params.id, {deletedAt: new Date()});
 
-            if (!product) return res.status(404).json({ status: 'fail', message: 'No category found with that ID' });
+            if (!category) return res.status(404).json({ status: 'fail', message: 'No category found with that ID' });
 
             return res.status(204).json({
                 status: 'success',
