@@ -3,10 +3,32 @@ import { User } from "../models/user.schema";
 import { Role } from "../models/role.schema";
 import { EmailController } from "./emailController";
 import { otpCreator } from "../utils/otpCreator";
+import { AdminEmail } from "../models/adminEmail.schema";
 
 export class RegisterController{
 
+    private validateForm = (req: Request) => {
+        const errors = []
+        if(!req.body.name) errors.push('NAME_REQUIRED')
+        if(!req.body.lastname) errors.push('LASTNAME_REQUIRED')
+        if(!req.body.email) errors.push('EMAIL_REQUIRED')
+        if(!req.body.password) errors.push('PASSWORD_REQUIRED')
+        if(!req.body.phone) errors.push('PHONE_REQUIRED')
+
+        return errors
+    }
+
     public signup = async (req: Request, res: Response) => {
+
+
+        const validateFormErrors = this.validateForm(req)
+        if(validateFormErrors.length > 0){
+            return res.status(400).json({
+                status: 'fail',
+                message: 'VALIDATION_ERROR',
+                errors: validateFormErrors
+            })
+        }
 
         try{
             
@@ -27,10 +49,20 @@ export class RegisterController{
             const {password, emailOtp, role, ...data} = user.toJSON()
 
             const emailController = new EmailController()
+            const adminEmail = await AdminEmail.findOne()
             emailController.sendEmail("emailVerify", user.email, "Verificación de email", {
-                name: user.name,
+                name: `${user.name} ${user.lastname}`,
                 emailOtp: user.emailOtp
             })
+
+            if(adminEmail){
+                emailController.sendEmail("adminNewRegister", adminEmail.email, "Nuevo cliente registrado", {
+                    name: `${user.name} ${user.lastname}`,
+                    email: user.email,
+                    phone: user.phone
+                })
+            }
+            
 
             return res.status(201).json({
                 'status': 'success',

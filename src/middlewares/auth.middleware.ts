@@ -2,6 +2,14 @@ import { NextFunction, Request, Response } from "express";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { User } from "../models/user.schema";
 
+declare global {
+    namespace Express {
+        interface Request {
+            user?: any;
+        }
+    }
+}
+
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
 
     if(!req.headers.authorization){
@@ -30,7 +38,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             });
         }
         
-        req.body.user = user;
+        req.user = user;
         
 
     } catch (error: any) {
@@ -48,7 +56,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 export const restrictsTo = (permissions: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
 
-        if(!req.body.user?.role?.permissions.includes(permissions)){
+        if(!req.user?.role?.permissions.includes(permissions)){
             return res.status(403).json({
                 status: 'fail',
                 message: 'You are not allowed to access this resource'

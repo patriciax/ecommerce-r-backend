@@ -29,7 +29,7 @@ export class UserController{
 
         try{
 
-            await User.findByIdAndUpdate(req.body.user._id, {
+            await User.findByIdAndUpdate(req.user._id, {
                 name: req.body.name
             })
     
@@ -51,7 +51,7 @@ export class UserController{
 
         try{
 
-            const user = await User.findById(req.body.user._id).select('-password -__v -_id').select('role').populate('role');
+            const user = await User.findById(req.user._id).select('-password -__v -_id').select('role').populate('role');
 
             return res.status(200).json({
                 "status": "success",
