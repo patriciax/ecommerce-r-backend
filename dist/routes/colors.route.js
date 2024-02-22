@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const colorController_1 = require("../controllers/colorController");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+const colorController = new colorController_1.ColorController();
+router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['COLOR-CREATE']), colorController.createColor);
+router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['COLOR-DELETE']), colorController.deleteColor);
+router.get('/', colorController.colors);
+router.get('/:id', colorController.getColor);
+router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['COLOR-UPDATE']), colorController.updateColor);
+exports.default = router;

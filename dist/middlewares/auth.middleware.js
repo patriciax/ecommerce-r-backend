@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authMiddleware = void 0;
+exports.restrictsTo = exports.authMiddleware = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const user_schema_1 = require("../models/user.schema");
 const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
@@ -28,8 +28,14 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
     try {
         const userInfo = (0, jsonwebtoken_1.verify)(splittedHeader[1], process.env.JWT_SECRET);
-        const user = yield user_schema_1.User.findById(userInfo._id);
-        req.body.user = user;
+        const user = yield user_schema_1.User.findById(userInfo._id).populate('role');
+        if (!user) {
+            return res.status(401).json({
+                status: 'fail',
+                message: 'You are not authorized to access this resource'
+            });
+        }
+        req.user = user;
     }
     catch (error) {
         return res.status(401).json({
@@ -40,3 +46,16 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     next();
 });
 exports.authMiddleware = authMiddleware;
+const restrictsTo = (permissions) => {
+    return (req, res, next) => {
+        var _a, _b;
+        if (!((_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a.role) === null || _b === void 0 ? void 0 : _b.permissions.includes(permissions))) {
+            return res.status(403).json({
+                status: 'fail',
+                message: 'You are not allowed to access this resource'
+            });
+        }
+        next();
+    };
+};
+exports.restrictsTo = restrictsTo;

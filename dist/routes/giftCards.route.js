@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const giftCardController_1 = require("../controllers/giftCardController");
+const router = (0, express_1.Router)();
+const giftCardController = new giftCardController_1.GiftCardController();
+router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['GIFT-CARD-CREATE']), giftCardController.createGiftCard);
+router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['GIFT-CARD-DELETE']), giftCardController.deleteGiftCard);
+router.get('/', giftCardController.giftCards);
+router.get('/:id', giftCardController.getGiftCard);
+router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['COLOR-UPDATE']), giftCardController.updateGiftCard);
+exports.default = router;

@@ -20,7 +20,7 @@ const storage = multer_1.default.diskStorage({
 const upload = (0, multer_1.default)({ storage: storage });
 const router = (0, express_1.Router)();
 const productController = new productController_1.ProductController();
-router.delete('/:id/secondary-image', auth_middleware_1.authMiddleware, productController.deleteSecondaryImage);
+router.delete('/:id/secondary-image/:imageId', auth_middleware_1.authMiddleware, productController.deleteSecondaryImage);
 router.delete('/:id', auth_middleware_1.authMiddleware, productController.deleteProduct);
 router.post('/', auth_middleware_1.authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount_1.maxImagesCount }]), productController.createProduct);
 router.patch('/:id', auth_middleware_1.authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount_1.maxImagesCount }]), productController.updateProduct);

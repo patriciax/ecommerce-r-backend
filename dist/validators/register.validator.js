@@ -17,7 +17,8 @@ const joi_1 = __importDefault(require("@hapi/joi"));
 const schema = joi_1.default.object({
     email: joi_1.default.string().email().required(),
     name: joi_1.default.string().min(3).max(30).required(),
-    password: joi_1.default.string().min(8).max(30).required()
+    password: joi_1.default.string().min(8).max(30).required(),
+    phone: joi_1.default.string().min(10).max(10).required(),
 });
 const registerValidator = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {

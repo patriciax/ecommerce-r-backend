@@ -20,28 +20,33 @@ class LoginController {
                 if (!user) {
                     return res.status(404).json({
                         status: 'fail',
-                        message: 'User not found'
+                        message: 'USER_NOT_FOUND'
+                    });
+                }
+                if (user.emailVerifiedAt === null) {
+                    return res.status(404).json({
+                        status: 'fail',
+                        message: 'EMAIL_NOT_VERIFIED'
                     });
                 }
                 const isPasswordValid = yield user.verifyUserPassword(req.body.password);
                 if (!isPasswordValid) {
                     return res.status(404).json({
                         status: 'fail',
-                        message: 'User not found'
+                        message: 'USER_NOT_FOUND'
                     });
                 }
                 const { _id } = user.toObject();
                 const token = (0, jsonwebtoken_1.sign)({ _id }, process.env.JWT_SECRET, { expiresIn: '2y' });
                 return res.status(200).json({
                     status: 'success',
-                    message: 'User logged in successfully',
                     data: token
                 });
             }
             catch (err) {
-                return res.status(404).json({
+                return res.status(500).json({
                     status: 'fail',
-                    message: err.message
+                    message: 'SOMETHING_WENT_WRONG'
                 });
             }
         });

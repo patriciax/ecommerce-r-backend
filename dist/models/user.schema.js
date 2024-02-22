@@ -21,10 +21,19 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         required: true
     },
+    lastname: {
+        type: String
+    },
     email: {
         type: String,
         required: true,
         unique: true
+    },
+    phone: {
+        type: String,
+    },
+    address: {
+        type: String
     },
     password: {
         type: String,
@@ -47,6 +56,10 @@ const UserSchema = new mongoose_1.Schema({
     createdAt: {
         type: Date,
         default: Date.now()
+    },
+    deletedAt: {
+        type: Date,
+        default: null
     }
 });
 UserSchema.pre('save', function (next) {
@@ -56,6 +69,10 @@ UserSchema.pre('save', function (next) {
         }
         next();
     });
+});
+UserSchema.pre(/^find/, function (next) {
+    this.find({ deletedAt: null });
+    next();
 });
 UserSchema.methods.verifyUserPassword = function (password) {
     return __awaiter(this, void 0, void 0, function* () {
