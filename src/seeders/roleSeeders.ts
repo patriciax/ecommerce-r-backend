@@ -57,6 +57,9 @@ const permissions = [
 
     {role: "ADMIN", permission: "CLIENT-LIST"},
 
+    {role: "ADMIN", permission: "NEWSLETTER-LIST"},
+    {role: "ADMIN", permission: "NEWSLETTER-CREATE"},
+
     //EMPLOYEE
 
     {role: "EMPLOYEE", permission: "PRODUCT-CREATE"},
