@@ -79,7 +79,7 @@ export class ColorController {
             const updatedColor = await Color.findByIdAndUpdate(req.params.id, {
                 name: req.body.title,
                 englishName: req.body.titleEnglish,
-                hex: req.body.hex
+                hex: req.body.hexColor
             }, {
                 new: true,
                 runValidators: true
