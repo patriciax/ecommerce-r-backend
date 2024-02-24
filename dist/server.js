@@ -64,7 +64,7 @@ rule.hour = 10;
 const app = (0, express_1.default)();
 app.use(body_parser_1.default.json({ limit: '35mb' }));
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:5173', 'http://localhost:5000', 'http://ecommerce-dashboard.sytes.net'],
+    origin: ['http://localhost:5173', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net'],
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.static('uploads'));
