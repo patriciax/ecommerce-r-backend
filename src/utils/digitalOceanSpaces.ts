@@ -7,6 +7,7 @@ const decodeBase64mimetype = (base64:string) =>{
         R0lGODlh: 'gif',
         iVBORw0KGgo: 'png',
         '/9j/': 'jpg',
+        UklGR: 'webp'
     };
     
     for(const sign in signatures)
