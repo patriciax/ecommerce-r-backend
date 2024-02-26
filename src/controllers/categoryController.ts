@@ -50,11 +50,13 @@ export class CategoryController {
             // mainImagePath = await digitalOceanUpload(base64Image)
 
             let slug = `${req.body.title}`
+            slug = slugify(slug, {lower: true})
             const results = await Category.find({slug: slug})
+            console.log(results)
             if(results.length > 0) {
                 slug = `${slug}-${Date.now()}`
             }
-            slug = slugify(slug, {lower: true})
+            
             const category = await Category.create({
                 name: req.body.title,
                 englishName: req.body.titleEnglish,
@@ -191,6 +193,23 @@ export class CategoryController {
                 message: 'No product found with that ID'
             })
         }
+    }
+
+    public menuCategories = async(req:Request, res:Response) => {
+
+        const mainCategories = await Category.find({parent_id: null, categoryType: 'main'});
+        const subCategories = await Category.find({categoryType: 'sub'});
+        const finalCategories = await Category.find({categoryType: 'final'});
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                mainCategories,
+                subCategories,
+                finalCategories
+            }
+        })
+
     }
 
 }
