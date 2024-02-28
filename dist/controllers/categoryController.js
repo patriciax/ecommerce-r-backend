@@ -50,11 +50,12 @@ class CategoryController {
                 // let base64Image = req.body.mainImage.split(';base64,').pop();
                 // mainImagePath = await digitalOceanUpload(base64Image)
                 let slug = `${req.body.title}`;
+                slug = (0, slugify_1.default)(slug, { lower: true });
                 const results = yield category_schema_1.Category.find({ slug: slug });
+                console.log(results);
                 if (results.length > 0) {
                     slug = `${slug}-${Date.now()}`;
                 }
-                slug = (0, slugify_1.default)(slug, { lower: true });
                 const category = yield category_schema_1.Category.create({
                     name: req.body.title,
                     englishName: req.body.titleEnglish,
@@ -168,6 +169,19 @@ class CategoryController {
                     message: 'No product found with that ID'
                 });
             }
+        });
+        this.menuCategories = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const mainCategories = yield category_schema_1.Category.find({ parent_id: null, categoryType: 'main' });
+            const subCategories = yield category_schema_1.Category.find({ categoryType: 'sub' });
+            const finalCategories = yield category_schema_1.Category.find({ categoryType: 'final' });
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    mainCategories,
+                    subCategories,
+                    finalCategories
+                }
+            });
         });
     }
 }

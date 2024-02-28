@@ -22,6 +22,7 @@ const router = (0, express_1.Router)();
 const categoryController = new categoryController_1.CategoryController();
 router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['CATEGORY-CREATE']), upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount_1.maxImagesCount }]), categoryController.createCategory);
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['CATEGORY-DELETE']), categoryController.deleteCategory);
+router.get('/menu', categoryController.menuCategories);
 router.get('/', categoryController.categories);
 router.get('/:id', categoryController.getCategory);
 router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['CATEGORY-UPDATE']), categoryController.updateCategory);
