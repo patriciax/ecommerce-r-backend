@@ -1,7 +1,6 @@
 import express from 'express'
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import * as schedule from "node-schedule";
 //import { initCloudinary } from './config/cloudinary';
 
 import productRoutes from './routes/products.route'
@@ -17,6 +16,9 @@ import { NewsletterController } from './controllers/newsletterController'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import { NewsletterJob } from './jobs/newsletter.job';
+import { DolarPriceJob } from './jobs/dolarPrice.job';
+import { DolarPriceController } from './controllers/dolarPriceController';
 
 const result = dotenv.config({path: `${__dirname}/config.env`})
 const dbString = process.env.DATABASE || '';
@@ -29,13 +31,10 @@ const newsletterController = new NewsletterController();
 
 //initCloudinary()
 
-const rule = new schedule.RecurrenceRule();
-rule.hour = 10;
-
 const app = express();
 app.use(bodyParser.json({limit: '35mb'}));
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net'],
 }));
 app.use(express.json())
 app.use(express.static('uploads'))
@@ -61,8 +60,9 @@ app.listen(5000, () => {
     console.log('Server is running on port 5000')
 })
 
-schedule.scheduleJob(rule, async function () {
+const newsLetterJob = new NewsletterJob()
+const dolaPriceJob = new DolarPriceJob()
 
-    await newsletterController.sendNewsletters()
+newsLetterJob.sendNewsletter()
+dolaPriceJob.updateDolarPrice()
 
-});

@@ -22,6 +22,7 @@ const categoryController = new CategoryController();
 router.post('/', authMiddleware, restrictsTo(['CATEGORY-CREATE']),  upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), categoryController.createCategory)
 router.delete('/:id', authMiddleware, restrictsTo(['CATEGORY-DELETE']),  categoryController.deleteCategory)
 
+router.get('/menu', categoryController.menuCategories)
 router.get('/', categoryController.categories)
 router.get('/:id', categoryController.getCategory)
 router.patch('/:id', authMiddleware, restrictsTo(['CATEGORY-UPDATE']), categoryController.updateCategory)
