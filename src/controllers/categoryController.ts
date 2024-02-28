@@ -157,9 +157,13 @@ export class CategoryController {
     public deleteCategory = async(req:Request, res:Response) => {
         
         try{
-            const category = await Category.findByIdAndUpdate(req.params.id, {deletedAt: new Date()});
-
+            const category = await Category.findById(req.params.id);
+            
             if (!category) return res.status(404).json({ status: 'fail', message: 'No category found with that ID' });
+
+            category.deletedAt = new Date()
+            category.slug = `${category.slug}-${Date.now()}`
+            category.save()
 
             return res.status(204).json({
                 status: 'success',
