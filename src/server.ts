@@ -12,13 +12,13 @@ import giftCardsRoutes from './routes/giftCards.route'
 import clientRoutes from './routes/clients.route'
 import cartRoutes from './routes/carts.route'
 import newsletterRoutes from './routes/newsletter.route'
+import checkoutRoutes from './routes/checkout.route'
 import { NewsletterController } from './controllers/newsletterController'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { NewsletterJob } from './jobs/newsletter.job';
 import { DolarPriceJob } from './jobs/dolarPrice.job';
-import { DolarPriceController } from './controllers/dolarPriceController';
 
 const result = dotenv.config({path: `${__dirname}/config.env`})
 const dbString = process.env.DATABASE || '';
@@ -48,6 +48,7 @@ app.use("/api/v1/gift-cards", giftCardsRoutes)
 app.use("/api/v1/clients", clientRoutes)
 app.use("/api/v1/carts", cartRoutes)
 app.use("/api/v1/newsletter", newsletterRoutes)
+app.use("/api/v1/checkout", checkoutRoutes)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({

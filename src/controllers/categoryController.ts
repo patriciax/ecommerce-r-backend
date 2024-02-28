@@ -52,7 +52,6 @@ export class CategoryController {
             let slug = `${req.body.title}`
             slug = slugify(slug, {lower: true})
             const results = await Category.find({slug: slug})
-            console.log(results)
             if(results.length > 0) {
                 slug = `${slug}-${Date.now()}`
             }
@@ -86,7 +85,21 @@ export class CategoryController {
             .sort()
             .limitFields()
             .paginate()
-            const categories = await features.query
+            const categories = await features.query.lean()
+
+            await Promise.all(categories.map(
+                async (category:any) => {
+                    let ancestors = []
+                    let parent = category.parent_id
+                    while(parent){
+                        const parentCategory = await Category.findById(parent)
+                        ancestors.push(parentCategory)
+                        parent = parentCategory?.parent_id
+                    }
+                    
+                    category.ancestors = ancestors
+                }
+            ))
 
             const totalCategories = await Category.find();
             const totalPages = totalCategories.length / Number(req?.query?.limit || 1);
