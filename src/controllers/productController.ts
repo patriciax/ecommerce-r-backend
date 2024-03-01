@@ -152,6 +152,7 @@ export class ProductController {
                 priceDiscount: req.body.priceDiscount,
                 mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                 images: images,
+                showInHomeSection: req.body.showInHomeSection,
                 slug: slug,
                 tags: tags
             })
@@ -246,6 +247,7 @@ export class ProductController {
             const tags = await this.setTags(fieldsToTag)
 
             const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
+                showInHomeSection: req.body.showInHomeSection,
                 categories: req.body.categories.map((category: any) => category.id ?? category),
                 sizes: req.body.sizes.map((size: any) => size.id ?? size),
                 colors: req.body.colors.map((color: any) => color.id ?? color),
@@ -361,6 +363,30 @@ export class ProductController {
             return res.status(404).json({
                 status: 'fail',
                 message: 'No product found with that ID'
+            })
+        }
+    }
+
+    public productInHome = async(req:Request, res:Response) => {
+        try{
+
+            const section1Products = await Product.find({showInHomeSection: 'section-1'});
+            const section2Products = await Product.find({showInHomeSection: 'section-2'});
+            const section3Products = await Product.find({showInHomeSection: 'section-3'});
+
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    "section1": section1Products,
+                    "section2": section2Products,
+                    "section3": section3Products
+                }
+            })
+
+        }catch(err:any){
+            return res.status(404).json({
+                status: 'fail',
+                message: err.message
             })
         }
     }

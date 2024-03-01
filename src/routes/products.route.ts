@@ -27,4 +27,6 @@ router.patch('/:id', authMiddleware, upload.fields([{ name: 'mainImage', maxCoun
 router.get('/', authMiddleware, productController.products)
 router.get('/:id', productController.getProduct)
 
+router.get('/product-home', productController.productInHome)
+
 export default router;

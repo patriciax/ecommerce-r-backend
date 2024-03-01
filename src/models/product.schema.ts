@@ -19,6 +19,10 @@ const ProductSchema = new Schema({
     descriptionEnglish: {
         type: String,
         require: true
+    },  
+    showInHomeSection:{
+        type: String,
+        enum: ['section-1', 'section-2', 'section-3'],
     },
     price: {
         type: Number,
