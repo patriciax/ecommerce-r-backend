@@ -370,9 +370,9 @@ export class ProductController {
     public productInHome = async(req:Request, res:Response) => {
         try{
 
-            const section1Products = await Product.find({showInHomeSection: 'section-1'});
-            const section2Products = await Product.find({showInHomeSection: 'section-2'});
-            const section3Products = await Product.find({showInHomeSection: 'section-3'});
+            const section1Products = await Product.find({showInHomeSection: 'section-1'}).limit(12);
+            const section2Products = await Product.find({showInHomeSection: 'section-2'}).limit(20);
+            const section3Products = await Product.find({showInHomeSection: 'section-3'}).limit(12);
 
             return res.status(200).json({
                 status: 'success',
