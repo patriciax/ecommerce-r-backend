@@ -13,6 +13,7 @@ export class RegisterController{
         if(!req.body.lastname) errors.push('LASTNAME_REQUIRED')
         if(!req.body.email) errors.push('EMAIL_REQUIRED')
         if(!req.body.password) errors.push('PASSWORD_REQUIRED')
+        if(req.body.password !== req.body.passwordConfirm) errors.push('PASSWORD_SHOULD_MATCH')
         if(!req.body.phone) errors.push('PHONE_REQUIRED')
 
         return errors
@@ -23,7 +24,7 @@ export class RegisterController{
 
         const validateFormErrors = this.validateForm(req)
         if(validateFormErrors.length > 0){
-            return res.status(400).json({
+            return res.status(422).json({
                 status: 'fail',
                 message: 'VALIDATION_ERROR',
                 errors: validateFormErrors
