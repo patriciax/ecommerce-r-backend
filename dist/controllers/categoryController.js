@@ -52,7 +52,6 @@ class CategoryController {
                 let slug = `${req.body.title}`;
                 slug = (0, slugify_1.default)(slug, { lower: true });
                 const results = yield category_schema_1.Category.find({ slug: slug });
-                console.log(results);
                 if (results.length > 0) {
                     slug = `${slug}-${Date.now()}`;
                 }
@@ -81,7 +80,17 @@ class CategoryController {
                     .sort()
                     .limitFields()
                     .paginate();
-                const categories = yield features.query;
+                const categories = yield features.query.lean();
+                yield Promise.all(categories.map((category) => __awaiter(this, void 0, void 0, function* () {
+                    let ancestors = [];
+                    let parent = category.parent_id;
+                    while (parent) {
+                        const parentCategory = yield category_schema_1.Category.findById(parent);
+                        ancestors.push(parentCategory);
+                        parent = parentCategory === null || parentCategory === void 0 ? void 0 : parentCategory.parent_id;
+                    }
+                    category.ancestors = ancestors;
+                })));
                 const totalCategories = yield category_schema_1.Category.find();
                 const totalPages = totalCategories.length / Number(((_a = req === null || req === void 0 ? void 0 : req.query) === null || _a === void 0 ? void 0 : _a.limit) || 1);
                 return res.status(200).json({

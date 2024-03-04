@@ -26,4 +26,5 @@ router.post('/', auth_middleware_1.authMiddleware, upload.fields([{ name: 'mainI
 router.patch('/:id', auth_middleware_1.authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount_1.maxImagesCount }]), productController.updateProduct);
 router.get('/', auth_middleware_1.authMiddleware, productController.products);
 router.get('/:id', productController.getProduct);
+router.get('/product-home', productController.productInHome);
 exports.default = router;

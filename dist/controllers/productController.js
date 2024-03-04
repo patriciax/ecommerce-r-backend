@@ -157,6 +157,7 @@ class ProductController {
                     priceDiscount: req.body.priceDiscount,
                     mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                     images: images,
+                    showInHomeSection: req.body.showInHomeSection,
                     slug: slug,
                     tags: tags
                 });
@@ -233,6 +234,7 @@ class ProductController {
                 };
                 const tags = yield this.setTags(fieldsToTag);
                 const updatedProduct = yield product_schema_1.Product.findByIdAndUpdate(req.params.id, {
+                    showInHomeSection: req.body.showInHomeSection,
                     categories: req.body.categories.map((category) => { var _a; return (_a = category.id) !== null && _a !== void 0 ? _a : category; }),
                     sizes: req.body.sizes.map((size) => { var _a; return (_a = size.id) !== null && _a !== void 0 ? _a : size; }),
                     colors: req.body.colors.map((color) => { var _a; return (_a = color.id) !== null && _a !== void 0 ? _a : color; }),
@@ -324,6 +326,27 @@ class ProductController {
                 return res.status(404).json({
                     status: 'fail',
                     message: 'No product found with that ID'
+                });
+            }
+        });
+        this.productInHome = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                const section1Products = yield product_schema_1.Product.find({ showInHomeSection: 'section-1' }).limit(12);
+                const section2Products = yield product_schema_1.Product.find({ showInHomeSection: 'section-2' }).limit(20);
+                const section3Products = yield product_schema_1.Product.find({ showInHomeSection: 'section-3' }).limit(12);
+                return res.status(200).json({
+                    status: 'success',
+                    data: {
+                        "section1": section1Products,
+                        "section2": section2Products,
+                        "section3": section3Products
+                    }
+                });
+            }
+            catch (err) {
+                return res.status(404).json({
+                    status: 'fail',
+                    message: err.message
                 });
             }
         });

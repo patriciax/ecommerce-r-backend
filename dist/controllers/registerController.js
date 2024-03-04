@@ -38,6 +38,8 @@ class RegisterController {
                 errors.push('EMAIL_REQUIRED');
             if (!req.body.password)
                 errors.push('PASSWORD_REQUIRED');
+            if (req.body.password !== req.body.passwordConfirm)
+                errors.push('PASSWORD_SHOULD_MATCH');
             if (!req.body.phone)
                 errors.push('PHONE_REQUIRED');
             return errors;
@@ -45,7 +47,7 @@ class RegisterController {
         this.signup = (req, res) => __awaiter(this, void 0, void 0, function* () {
             const validateFormErrors = this.validateForm(req);
             if (validateFormErrors.length > 0) {
-                return res.status(400).json({
+                return res.status(422).json({
                     status: 'fail',
                     message: 'VALIDATION_ERROR',
                     errors: validateFormErrors

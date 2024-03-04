@@ -16,6 +16,7 @@ const giftCards_route_1 = __importDefault(require("./routes/giftCards.route"));
 const clients_route_1 = __importDefault(require("./routes/clients.route"));
 const carts_route_1 = __importDefault(require("./routes/carts.route"));
 const newsletter_route_1 = __importDefault(require("./routes/newsletter.route"));
+const checkout_route_1 = __importDefault(require("./routes/checkout.route"));
 const newsletterController_1 = require("./controllers/newsletterController");
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
@@ -31,7 +32,7 @@ const newsletterController = new newsletterController_1.NewsletterController();
 const app = (0, express_1.default)();
 app.use(body_parser_1.default.json({ limit: '35mb' }));
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net', 'https://ecommerce.sytes.net'],
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.static('uploads'));
@@ -44,6 +45,7 @@ app.use("/api/v1/gift-cards", giftCards_route_1.default);
 app.use("/api/v1/clients", clients_route_1.default);
 app.use("/api/v1/carts", carts_route_1.default);
 app.use("/api/v1/newsletter", newsletter_route_1.default);
+app.use("/api/v1/checkout", checkout_route_1.default);
 app.all('*', (req, res, next) => {
     return res.status(404).json({
         status: 'fail',

@@ -10,22 +10,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CheckoutController = void 0;
+const PaypalController_1 = require("./paymentMethods/PaypalController");
 class CheckoutController {
     constructor() {
         this.paymentMethods = [
             'credits',
-            'paypal',
+            'paypal-create-order',
+            'paypal-approve-order',
             'stripe',
             'mercantil',
             'banesco'
         ];
         this.paymentProcess = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const paypalProcess = new PaypalController_1.PaypalController();
             if (req.body.paymentMethod === 'credits') {
             }
-            else if (req.body.paymentMethod === 'paypal') {
+            else if (req.body.paymentMethod === 'paypal-create-order') {
+                const order = yield paypalProcess.createOrder([]);
+                return res.status(200).json({
+                    order
+                });
             }
-        });
-        this.paypalProcess = () => __awaiter(this, void 0, void 0, function* () {
+            else if (req.body.paymentMethod === 'paypal-approve-order') {
+                const response = yield paypalProcess.captureOrder(req.body.orderId);
+                return res.status(200).json({
+                    response
+                });
+            }
+            return res.status(200).json({
+                status: 'success',
+                message: 'Payment process'
+            });
         });
     }
 }
