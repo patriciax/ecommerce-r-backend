@@ -34,7 +34,7 @@ const newsletterController = new NewsletterController();
 const app = express();
 app.use(bodyParser.json({limit: '35mb'}));
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net', 'https://ecommerce.sytes.net'],
 }));
 app.use(express.json())
 app.use(express.static('uploads'))
