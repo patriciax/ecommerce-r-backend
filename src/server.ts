@@ -13,7 +13,6 @@ import clientRoutes from './routes/clients.route'
 import cartRoutes from './routes/carts.route'
 import newsletterRoutes from './routes/newsletter.route'
 import checkoutRoutes from './routes/checkout.route'
-import { NewsletterController } from './controllers/newsletterController'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -27,7 +26,13 @@ mongoose.connect(dbString).then(() => {
     console.log('Connected to MongoDB')
 })
 
-const newsletterController = new NewsletterController();
+declare global {
+    namespace Express {
+        interface Request {
+            user?: any;
+        }
+    }
+}
 
 //initCloudinary()
 

@@ -17,7 +17,7 @@ export class LoginController {
                 })
             }
 
-            if(user.emailVerifiedAt === null){
+            if(!user.emailVerifiedAt){
                 return res.status(404).json({
                     status: 'fail',
                     message: 'EMAIL_NOT_VERIFIED'
