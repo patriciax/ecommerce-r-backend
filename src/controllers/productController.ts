@@ -350,7 +350,7 @@ export class ProductController {
     public getProduct = async(req:Request, res:Response) => {
         try{
 
-            const product = await Product.findById(req.params.id);
+            const product = await Product.findById(req.params.id).populate('colors', 'sizes');
 
             if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
 

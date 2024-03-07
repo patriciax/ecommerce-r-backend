@@ -13,6 +13,7 @@ import clientRoutes from './routes/clients.route'
 import cartRoutes from './routes/carts.route'
 import newsletterRoutes from './routes/newsletter.route'
 import checkoutRoutes from './routes/checkout.route'
+import bannerRoutes from './routes/banners.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -44,6 +45,7 @@ app.use(cors({
 app.use(express.json())
 app.use(express.static('uploads'))
 
+app.use("/api/v1/banners", bannerRoutes)
 app.use("/api/v1/products", productRoutes)
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/categories", categoryRoutes)

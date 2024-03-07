@@ -23,12 +23,11 @@ export class BannerController {
             }
 
             else {
-                const image = request.body.video;
-                let base64Video = image.split(';base64,').pop();
+                const video = request.body.video;
+                let base64Video = video.split(';base64,').pop();
                 const videoPath: any = await digitalOceanUpload(base64Video)
             }
             
-
             const banner = await Banner.create({
                 type: request.body.type,
                 secondaryTexts: request.body.secondaryTexts,
