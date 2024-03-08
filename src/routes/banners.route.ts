@@ -6,5 +6,6 @@ const router = Router();
 const bannerController = new BannerController();
 
 router.post('/', authMiddleware, bannerController.createBanner)
+router.get('/', bannerController.getBanner)
 
 export default router;
