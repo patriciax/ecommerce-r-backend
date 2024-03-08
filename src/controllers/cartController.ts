@@ -98,7 +98,21 @@ export class CartController {
 
         try{
 
-            await Cart.insertMany(req.body.cart)
+            const products = await Cart.find({user: req.user._id}).lean()
+
+            const cartItems = req.body.cartItems.map((item:any) => {
+
+                const product = products.find((product:any) => product.productId === item.productId)
+                return {
+                    user: req.user._id,
+                    product: item.productId,
+                    quantity: product ? item.quantity + product.quantity : item.quantity
+                }
+                
+                
+            })
+
+            await Cart.insertMany(cartItems)
 
             return res.status(200).json({
                 status: 'success',
