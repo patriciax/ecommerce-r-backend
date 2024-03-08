@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Cart } from "../models/cart.schema";
+import { Product } from "../models/product.schema";
 
 
 export class CartController {
@@ -91,6 +92,77 @@ export class CartController {
                 message: 'SOMETHING_WENT_WRONG'
             })
         }
+    }
+
+    public massAssignment = async(req:Request, res:Response) => {
+
+        try{
+
+            await Cart.insertMany(req.body.cart)
+
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    message: 'PRODUCT_ADDED_CART'
+                }
+            })
+        }catch(err){
+            return res.status(500).json({
+                status: 'fail',
+                message: 'SOMETHING_WENT_WRONG'
+            })
+        }
+
+    }
+
+    public productInfoGuest = async(req:Request, res:Response) => {
+
+        try{
+
+            const products = await Product.find({_id: {$in: req.body.cartProducts.map((product:any) => product.productId)}}).lean()
+
+            const produtsWithQuantity = products.map((product:any) => {
+                const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId === product._id)
+                return {
+                    ...product,
+                    quantity: cartProduct.quantity
+                }
+            })
+
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    "cart": produtsWithQuantity
+                }
+            })
+        }catch(err){
+            return res.status(500).json({
+                status: 'fail',
+                message: 'SOMETHING_WENT_WRONG'
+            })
+        }
+
+    }
+
+    public productInfo = async(req:Request, res:Response) => {
+
+        try{
+
+            const products = await Cart.find({user: req.user._id}).populate('product').lean()
+
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    "cart": products
+                }
+            })
+        }catch(err){
+            return res.status(500).json({
+                status: 'fail',
+                message: 'SOMETHING_WENT_WRONG'
+            })
+        }
+
     }
 
 }
