@@ -2,13 +2,13 @@ import { NextFunction, Request, Response } from "express";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { User } from "../models/user.schema";
 
-// declare global {
-//     namespace Express {
-//         interface Request {
-//             user?: any;
-//         }
-//     }
-// }
+declare global {
+    namespace Express {
+        interface Request {
+            user?: any;
+        }
+    }
+}
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
 
