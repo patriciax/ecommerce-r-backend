@@ -139,7 +139,7 @@ export class CartController {
                 const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId === product._id)
                 return {
                     ...product,
-                    quantity: cartProduct.quantity
+                    quantity: cartProduct.quantity > product.stock ? product.stock : cartProduct.quantity
                 }
             })
 
@@ -163,6 +163,15 @@ export class CartController {
         try{
 
             const products = await Cart.find({user: req.user._id}).populate('product').lean()
+
+            const carts = products.map((product:any) => {
+
+                return {
+                    ...product.product,
+                    quantity: product.quantity > product.product.stock ? product.product.stock : product.quantity
+                }
+
+            })
 
             return res.status(200).json({
                 status: 'success',
