@@ -14,6 +14,7 @@ import cartRoutes from './routes/carts.route'
 import newsletterRoutes from './routes/newsletter.route'
 import checkoutRoutes from './routes/checkout.route'
 import bannerRoutes from './routes/banners.route'
+import zoomRoutes from './routes/zoom.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -56,6 +57,7 @@ app.use("/api/v1/clients", clientRoutes)
 app.use("/api/v1/carts", cartRoutes)
 app.use("/api/v1/newsletter", newsletterRoutes)
 app.use("/api/v1/checkout", checkoutRoutes)
+app.use("/api/v1/zoom", zoomRoutes)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
