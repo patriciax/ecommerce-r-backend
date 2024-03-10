@@ -192,8 +192,8 @@ export class CartController {
             const products = await Product.find({_id: {$in: req.body.cartProducts.map((product:any) => product.productId)}}).lean()
             
             const produtsWithQuantity = products.map((product:any) => {
-                const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId === product._id)
-                console.log(cartProduct)
+                const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId == product._id)
+              
                 return {
                     ...product,
                     quantity: cartProduct.quantity > product.stock ? product.stock : cartProduct.quantity
