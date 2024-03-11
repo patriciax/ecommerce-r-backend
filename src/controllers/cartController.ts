@@ -41,7 +41,7 @@ export class CartController {
                 const product = carts.find((product:any) => product.product._id == req.body.productId)
                 if(product){
                     product.quantity += req.body.quantity
-                    product.save()
+                    await product.save()
                     return res.status(200).json({
                         status: 'success',
                         data: {
@@ -51,7 +51,7 @@ export class CartController {
                 }
             }
             
-            Cart.create({
+            await Cart.create({
                 user: req.user._id,
                 product: req.body.productId,
                 quantity: req.body.quantity,
@@ -176,12 +176,11 @@ export class CartController {
 
             else{
 
-                const productsToInsert = []
-
                 for(const item of products){
                     const product = cartItems.find((product:any) => product.product == item?.product)
                     if(!product){
                         await Cart.create({
+                            user: req.user._id,
                             product: item.product,
                             quantity: item.quantity,
                         })
