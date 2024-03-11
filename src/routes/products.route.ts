@@ -24,9 +24,10 @@ router.delete('/:id', authMiddleware, productController.deleteProduct)
 router.post('/', authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), productController.createProduct)
 router.patch('/:id', authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount }]), productController.updateProduct)
 
-router.get('/', authMiddleware, productController.products)
+router.get('/product-home', productController.productInHome)
+
+router.get('/', productController.products)
 router.get('/:id', productController.getProduct)
 
-router.get('/product-home', productController.productInHome)
 
 export default router;

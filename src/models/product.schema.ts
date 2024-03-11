@@ -74,4 +74,9 @@ ProductSchema.pre<Query<any, any>>(/^find/, function(next){
     next()
 })
 
+ProductSchema.pre<Query<any, any>>(/^find/, function(next){
+    this.populate('colors').populate('sizes').populate('categories')
+    next()
+})
+
 export const Product = model('Product', ProductSchema)

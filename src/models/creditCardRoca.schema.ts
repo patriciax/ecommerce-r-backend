@@ -1,4 +1,4 @@
-import { Model, Schema, model } from "mongoose";
+import { InferSchemaType, Model, Schema, model } from "mongoose";
 import bcrypt from 'bcrypt'
 
 interface CreditCardRocaDocument extends Document {
@@ -19,9 +19,17 @@ const CreditCardRocaSchema = new Schema({
         type: String,
         required: true
     },
+    fromUser:{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+    },
     user:{
         type: Schema.Types.ObjectId,
         ref: 'User',
+    },
+    email: {
+        type: String,
+        required: true
     },
     credit: {
         type: Number,
@@ -31,11 +39,6 @@ const CreditCardRocaSchema = new Schema({
         type: Number,
     }
 })
-
-interface MyModel extends Model<CreditCardRocaDocument> {
-    // Definir la firma del método de búsqueda personalizado
-    generateCardNumber(): Promise<string>
-}
 
 CreditCardRocaSchema.pre('save', async function(next){
     if(this.cardNumber && this.cardPin){
@@ -53,4 +56,9 @@ CreditCardRocaSchema.methods.verifyCardPin = async function(cardPin:string){
     return await bcrypt.compare(cardPin, this.cardPin)
 }
 
-export const CreditCardRoca = model('CreditCardRoca', CreditCardRocaSchema)
+declare interface ICreditCardRoca extends InferSchemaType<typeof CreditCardRocaSchema> {
+    verifyCardNumber(cardNumber: string): Promise<boolean>
+    verifyCardPin(cardPin: string): Promise<boolean>
+}
+
+export const CreditCardRoca = model<ICreditCardRoca>('CreditCardRoca', CreditCardRocaSchema)

@@ -13,7 +13,8 @@ import clientRoutes from './routes/clients.route'
 import cartRoutes from './routes/carts.route'
 import newsletterRoutes from './routes/newsletter.route'
 import checkoutRoutes from './routes/checkout.route'
-import { NewsletterController } from './controllers/newsletterController'
+import bannerRoutes from './routes/banners.route'
+import zoomRoutes from './routes/zoom.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -27,7 +28,13 @@ mongoose.connect(dbString).then(() => {
     console.log('Connected to MongoDB')
 })
 
-const newsletterController = new NewsletterController();
+declare global {
+    namespace Express {
+        interface Request {
+            user?: any;
+        }
+    }
+}
 
 //initCloudinary()
 
@@ -39,6 +46,7 @@ app.use(cors({
 app.use(express.json())
 app.use(express.static('uploads'))
 
+app.use("/api/v1/banners", bannerRoutes)
 app.use("/api/v1/products", productRoutes)
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/categories", categoryRoutes)
@@ -49,6 +57,7 @@ app.use("/api/v1/clients", clientRoutes)
 app.use("/api/v1/carts", cartRoutes)
 app.use("/api/v1/newsletter", newsletterRoutes)
 app.use("/api/v1/checkout", checkoutRoutes)
+app.use("/api/v1/zoom", zoomRoutes)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
