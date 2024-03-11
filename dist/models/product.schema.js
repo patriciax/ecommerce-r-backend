@@ -69,4 +69,8 @@ ProductSchema.pre(/^find/, function (next) {
     this.find({ deletedAt: null });
     next();
 });
+ProductSchema.pre(/^find/, function (next) {
+    this.populate('colors').populate('sizes').populate('categories');
+    next();
+});
 exports.Product = (0, mongoose_1.model)('Product', ProductSchema);

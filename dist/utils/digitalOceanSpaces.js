@@ -21,7 +21,10 @@ const decodeBase64mimetype = (base64) => {
         R0lGODlh: 'gif',
         iVBORw0KGgo: 'png',
         '/9j/': 'jpg',
-        UklGR: 'webp'
+        UklGR: 'webp',
+        AAAAHGZ0eXBt: 'mp4',
+        AAAAFGZ0eXBxdCAgAAACAHF0I: 'mov',
+        GkXfo: 'webm'
     };
     for (const sign in signatures)
         if (base64.startsWith(sign))

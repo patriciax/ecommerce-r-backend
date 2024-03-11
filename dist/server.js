@@ -17,7 +17,8 @@ const clients_route_1 = __importDefault(require("./routes/clients.route"));
 const carts_route_1 = __importDefault(require("./routes/carts.route"));
 const newsletter_route_1 = __importDefault(require("./routes/newsletter.route"));
 const checkout_route_1 = __importDefault(require("./routes/checkout.route"));
-const newsletterController_1 = require("./controllers/newsletterController");
+const banners_route_1 = __importDefault(require("./routes/banners.route"));
+const zoom_route_1 = __importDefault(require("./routes/zoom.route"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const newsletter_job_1 = require("./jobs/newsletter.job");
@@ -27,7 +28,6 @@ const dbString = process.env.DATABASE || '';
 mongoose_1.default.connect(dbString).then(() => {
     console.log('Connected to MongoDB');
 });
-const newsletterController = new newsletterController_1.NewsletterController();
 //initCloudinary()
 const app = (0, express_1.default)();
 app.use(body_parser_1.default.json({ limit: '35mb' }));
@@ -36,6 +36,7 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.static('uploads'));
+app.use("/api/v1/banners", banners_route_1.default);
 app.use("/api/v1/products", products_route_1.default);
 app.use("/api/v1/users", users_route_1.default);
 app.use("/api/v1/categories", categories_route_1.default);
@@ -46,6 +47,7 @@ app.use("/api/v1/clients", clients_route_1.default);
 app.use("/api/v1/carts", carts_route_1.default);
 app.use("/api/v1/newsletter", newsletter_route_1.default);
 app.use("/api/v1/checkout", checkout_route_1.default);
+app.use("/api/v1/zoom", zoom_route_1.default);
 app.all('*', (req, res, next) => {
     return res.status(404).json({
         status: 'fail',

@@ -24,9 +24,17 @@ const CreditCardRocaSchema = new mongoose_1.Schema({
         type: String,
         required: true
     },
+    fromUser: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+    },
     user: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
+    },
+    email: {
+        type: String,
+        required: true
     },
     credit: {
         type: Number,
