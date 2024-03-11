@@ -153,10 +153,16 @@ class CartController {
                     yield cart_schema_1.Cart.insertMany(cartItems);
                 }
                 else {
+                    const productsToInsert = [];
                     for (const item of products) {
                         const product = cartItems.find((product) => product.product == (item === null || item === void 0 ? void 0 : item.product));
-                        if (!product)
+                        if (!product) {
+                            yield cart_schema_1.Cart.create({
+                                product: item.product,
+                                quantity: item.quantity,
+                            });
                             continue;
+                        }
                         yield cart_schema_1.Cart.findByIdAndUpdate(item._id, { quantity: product.quantity });
                     }
                 }
