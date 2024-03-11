@@ -35,6 +35,22 @@ export class CartController {
             if(results.length > 0) 
                 return res.status(422).json({ status: 'fail', message: results })
             
+            const carts = await Cart.find({user: req.user._id})
+
+            if(carts.length > 0){
+                const product = carts.find((product:any) => product.product._id == req.body.productId)
+                if(product){
+                    product.quantity += req.body.quantity
+                    product.save()
+                    return res.status(200).json({
+                        status: 'success',
+                        data: {
+                            message: 'PRODUCT_ADDED_TO_CART'
+                        }
+                    })
+                }
+            }
+            
             Cart.create({
                 user: req.user._id,
                 product: req.body.productId,
