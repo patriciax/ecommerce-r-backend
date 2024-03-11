@@ -176,9 +176,18 @@ export class CartController {
 
             else{
 
+                const productsToInsert = []
+
                 for(const item of products){
                     const product = cartItems.find((product:any) => product.product == item?.product)
-                    if(!product) continue
+                    if(!product){
+                        await Cart.create({
+                            product: item.product,
+                            quantity: item.quantity,
+                        })
+
+                        continue
+                    }
 
                     await Cart.findByIdAndUpdate(item._id, {quantity: product.quantity})
                     
