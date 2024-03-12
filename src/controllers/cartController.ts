@@ -181,7 +181,7 @@ export class CartController {
                     if(!product){
                         await Cart.create({
                             user: req.user._id,
-                            product: item.product,
+                            product: product._id,
                             quantity: item.quantity,
                         })
 

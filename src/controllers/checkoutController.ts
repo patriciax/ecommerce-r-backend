@@ -1,5 +1,6 @@
 import axios from "axios"
 import { PaypalController } from "./paymentMethods/PaypalController"
+import { BanescoController } from "./paymentMethods/BanescoController"
 import { Product } from "../models/product.schema"
 import { Request } from "express";
 import { Invoice } from "../models/invoice.schema";
@@ -30,13 +31,12 @@ export class CheckoutController {
         this.validateCart(req.body.carts)
         const tracnsactionOrder = await this.generateInvoiceOrder()
 
-        const paypalProcess = new PaypalController()
-
         if(req.body.paymentMethod === 'credits'){
             
         }
 
         else if(req.body.paymentMethod === 'paypal-create-order'){
+            const paypalProcess = new PaypalController()
             const order = await paypalProcess.createOrder([])
             return res.status(200).json({
                 order
@@ -44,6 +44,7 @@ export class CheckoutController {
         }
 
         else if(req.body.paymentMethod === 'paypal-approve-order'){
+            const paypalProcess = new PaypalController()
             const response = await paypalProcess.captureOrder(req.body.orderId)
 
             console.log(response)
@@ -52,6 +53,22 @@ export class CheckoutController {
             return res.status(200).json({
                 response
             })
+        }
+
+        else if(req.body.paymentMethod === 'banesco'){
+            const banescoProcess = new BanescoController()
+            const data = {
+                "amount": "200.00",
+                "description": "Prueba banesco",
+                "cardHolder": "Willian Rodriguez",
+                "cardHolderId": "24595726",
+                "cardNumber": "4111111111111111",
+                "cvc": "123",
+                "expirationDate": "06/2028",
+                "ip": "127.0.0.1"
+            }
+            const response = await banescoProcess.makePayment(data)
+
         }
 
         return res.status(200).json({
