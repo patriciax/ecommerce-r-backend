@@ -39,15 +39,24 @@ export class CartController {
 
             if(carts.length > 0){
                 const product = carts.find((product:any) => product.product._id == req.body.productId)
+
                 if(product){
-                    product.quantity += req.body.quantity
-                    await product.save()
-                    return res.status(200).json({
-                        status: 'success',
-                        data: {
-                            message: 'PRODUCT_ADDED_TO_CART'
-                        }
-                    })
+
+                    const cartModel = await Cart.findOne({user: req.user._id, product: product.product  })
+                    if(cartModel){
+                        
+                        cartModel.quantity = cartModel.quantity + req.body.quantity
+                        await  cartModel.save()
+
+                        return res.status(200).json({
+                            status: 'success',
+                            data: {
+                                message: 'PRODUCT_ADDED_TO_CART'
+                            }
+                        })
+                    }
+
+                    
                 }
             }
             
@@ -179,14 +188,17 @@ export class CartController {
                 for(const item of products){
                     const product = cartItems.find((product:any) => product.product != item?.product)
                     if(product){
+
+                        //console.log('if', product)
+
                         await Cart.create({
                             user: req.user._id,
                             product: product.product,
                             quantity: item.quantity,
                         })
 
-                        continue
                     }else{
+                        //console.log('else', item)
                         await Cart.findByIdAndUpdate(item._id, {quantity: item.quantity})
                     }   
                     

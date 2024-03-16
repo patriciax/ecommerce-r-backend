@@ -1,4 +1,5 @@
 import axios from "axios"
+import  {createHash, createCipheriv, createDecipheriv}  from 'crypto';
 
 export class BanescoController {
 
