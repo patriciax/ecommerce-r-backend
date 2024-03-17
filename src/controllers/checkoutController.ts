@@ -5,6 +5,8 @@ import { Product } from "../models/product.schema"
 import { Request } from "express";
 import { Invoice } from "../models/invoice.schema";
 import { randomNumbersGenerator } from "../utils/randomNumbersGenerator";
+import { Payment } from "../models/payments.schema";
+import { InvoiceProduct } from "../models/invoiceProduct.schema";
 
 declare global {
     namespace Express {
@@ -57,17 +59,24 @@ export class CheckoutController {
 
         else if(req.body.paymentMethod === 'banesco'){
             const banescoProcess = new BanescoController()
-            const data = {
-                "amount": "200.00",
-                "description": "Prueba banesco",
-                "cardHolder": "Willian Rodriguez",
-                "cardHolderId": "24595726",
-                "cardNumber": "4111111111111111",
-                "cvc": "123",
-                "expirationDate": "06/2028",
-                "ip": "127.0.0.1"
+            const response = await banescoProcess.makePayment(req.body.banescoData)
+
+            const payment = this.generatePayment(req, 'banesco', tracnsactionOrder)
+
+            if(response.success){
+
+                await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                return res.status(200).json({
+                    status: 'success',
+                    message: 'PAYMENT_SUCCESS'
+                })
             }
-            const response = await banescoProcess.makePayment(data)
+
+            return res.status(200).json({
+                status: 'fail',
+                message: 'PAYMENT_FAILED'
+            })
 
         }
 
@@ -105,7 +114,6 @@ export class CheckoutController {
                 productDoesNotExist = true
                 break            
             }
-
         }
 
         if(productDoesNotExist){
@@ -148,7 +156,31 @@ export class CheckoutController {
         }
     }
 
-    private generateInvoice = async(req:Request, payment:string, order:string) => {
+    private generatePayment = async(req:Request, payment:string, order:string) => {
+        let userName = ''
+        let userEmail = ''
+        let userPhone = ''
+        if(!req?.user?._id){
+            userName = req.body.name
+            userEmail = req.body.email
+            userPhone = req.body.phone
+        }
+
+        const paymentModel = await Payment.create({
+            user: req?.user?._id,   
+            name: userName,
+            email: userEmail,
+            phone: userPhone,
+            transactionId: order,
+            type: payment,
+            status: 'approved'
+        })
+
+        return paymentModel
+
+    }
+
+    private generateInvoice = async(req:Request, order:string, paymentModel:any) => {
         
         let userName = ''
         let userEmail = ''
@@ -159,14 +191,24 @@ export class CheckoutController {
             userPhone = req.body.phone
         }
         
-        await Invoice.create({
+        const invoice = await Invoice.create({
             user: req?.user?._id,
             name: userName,
             email: userEmail,
             phone: userPhone,
             transaction: order,
-            products: req.body.carts
+            payment: paymentModel._id,
         })
+
+        for(let cart of req.body.carts){
+
+            await InvoiceProduct.create({
+                invoice: invoice._id,
+                product: cart._id,
+                quantity: cart.quantity
+            })
+
+        }
 
         this.subsctractStock(req.body.carts)
 

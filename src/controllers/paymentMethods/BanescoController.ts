@@ -1,5 +1,4 @@
 import axios from "axios"
-import  {createHash, createCipheriv, createDecipheriv}  from 'crypto';
 
 export class BanescoController {
 
@@ -24,13 +23,12 @@ export class BanescoController {
                 headers: {'content-type': 'application/x-www-form-urlencoded'}
             })
 
-            console.log(response.data)
-            return
+            
+            return response.data
 
         }catch(error){
 
-            console.log(error)
-            return
+            return error
         }
 
     }

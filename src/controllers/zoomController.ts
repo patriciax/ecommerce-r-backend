@@ -10,7 +10,7 @@ export class ZoomController {
             const response = await axios.get(`${process.env.ZOOM_API_URL}/getEstados`)
             if(response.data?.codrespuesta === 'COD_000'){
                 
-                return res.status(400).json({
+                return res.status(200).json({
                     status:'success',
                     data: response.data?.entidadRespuesta
                 })
@@ -38,7 +38,7 @@ export class ZoomController {
             const response = await axios.get(`${process.env.ZOOM_API_URL}/getOficinaEstadoWs?codestado=${req.params.state}`)
             if(response.data?.codrespuesta === 'COD_000'){
                 
-                return res.status(400).json({
+                return res.status(200).json({
                     status:'success',
                     data: response.data?.entidadRespuesta
                 })
@@ -69,7 +69,7 @@ export class ZoomController {
             const response = await axios.get(`${process.env.ZOOM_API_URL}/getInfoTracking?tipo_busqueda=1&codigo=${req.params.tracking}&codigo_cliente=${process.env.ZOOM_CLIENT}`)
             if(response.data?.codrespuesta === 'COD_000'){
                 
-                return res.status(400).json({
+                return res.status(200).json({
                     status:'success',
                     data: response.data?.entidadRespuesta
                 })

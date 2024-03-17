@@ -23,18 +23,7 @@ const invoiceSchema = new Schema({
     payment:{
         type: Schema.Types.ObjectId,
         ref: "Payment"
-    },
-    products: {
-        type: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "User"
-            },
-            {
-                type: Number
-            }
-        ]
-    }   
+    }
 
 })
 

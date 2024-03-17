@@ -1,0 +1,11 @@
+Hola, {{name}},
+
+Tu número de factura es: {{invoiceNumber}}.
+
+Los productos comprados fueron:
+
+<ul>
+    {{#each carts}}
+        <li>{{this.product.title}} - {{this.amount}}</li>
+    {{/each}}
+</ul>
