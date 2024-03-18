@@ -7,6 +7,8 @@ import { Invoice } from "../models/invoice.schema";
 import { randomNumbersGenerator } from "../utils/randomNumbersGenerator";
 import { Payment } from "../models/payments.schema";
 import { InvoiceProduct } from "../models/invoiceProduct.schema";
+import { EmailController } from "./emailController";
+import { AdminEmail } from "../models/adminEmail.schema";
 
 declare global {
     namespace Express {
@@ -61,7 +63,7 @@ export class CheckoutController {
             const banescoProcess = new BanescoController()
             const response = await banescoProcess.makePayment(req.body.banescoData)
 
-            const payment = this.generatePayment(req, 'banesco', tracnsactionOrder)
+            const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder)
 
             if(response.success){
 
@@ -196,18 +198,35 @@ export class CheckoutController {
             name: userName,
             email: userEmail,
             phone: userPhone,
-            transaction: order,
+            transactionOrder: order,
             payment: paymentModel._id,
         })
 
+        const invoiceProducts = []
+
         for(let cart of req.body.carts){
 
-            await InvoiceProduct.create({
-                invoice: invoice._id,
-                product: cart._id,
-                quantity: cart.quantity
-            })
+            const productModel = await Product.findById(cart.id)
 
+            invoiceProducts.push(
+                {
+                    invoice: invoice._id,
+                    product: cart.id,
+                    quantity: cart.quantity,
+                    productModel: productModel ? productModel.name : null
+                }
+            )
+
+        }
+
+        await InvoiceProduct.insertMany(invoiceProducts)
+        const receiverEmail = req?.user?.email || userEmail
+        const receiverName = req?.user?.name || userName
+
+       
+        const adminEmail = await AdminEmail.findOne()
+        if(adminEmail){
+            this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts)
         }
 
         this.subsctractStock(req.body.carts)
@@ -225,6 +244,14 @@ export class CheckoutController {
         }
     }
 
+    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any) => {
 
+        const emailController = new EmailController()
+        emailController.sendEmail("invoice", email, "Factura ERoca", {
+            "invoiceNumber": invoiceNumber,
+            "user": name,
+            "carts": carts
+        })
+    }
 
 }

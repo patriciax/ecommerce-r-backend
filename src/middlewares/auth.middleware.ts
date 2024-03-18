@@ -53,6 +53,33 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
 }
 
+export const authMiddlewareLoginNoRequired = async (req: Request, res: Response, next: NextFunction) => {
+
+    let splittedHeader:any = []
+
+    if(req.headers.authorization){
+        splittedHeader = req.headers.authorization.split(' ')
+    }
+
+    try {
+        const userInfo = verify(splittedHeader[1], process.env.JWT_SECRET as string) as JwtPayload;
+        const user = await User.findById(userInfo._id).populate('role');
+        
+        req.user = user;
+        
+
+    } catch (error: any) {
+        return res.status(401).json({
+            status: 'fail',
+            message: 'You are not authorized to access this resource'
+        });
+    }
+
+    next();
+    
+
+}
+
 export const restrictsTo = (permissions: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
 
