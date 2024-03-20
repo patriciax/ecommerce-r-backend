@@ -62,12 +62,13 @@ export const authMiddlewareLoginNoRequired = async (req: Request, res: Response,
     }
 
     try {
-        const userInfo = verify(splittedHeader[1], process.env.JWT_SECRET as string) as JwtPayload;
-        const user = await User.findById(userInfo._id).populate('role');
+        if(splittedHeader.length > 0){
+            const userInfo = verify(splittedHeader[1], process.env.JWT_SECRET as string) as JwtPayload;
+            const user = await User.findById(userInfo._id).populate('role');
+            
+            req.user = user;
+        }
         
-        req.user = user;
-        
-
     } catch (error: any) {
         return res.status(401).json({
             status: 'fail',

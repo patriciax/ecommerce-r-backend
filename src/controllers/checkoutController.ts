@@ -41,7 +41,7 @@ export class CheckoutController {
 
         else if(req.body.paymentMethod === 'paypal-create-order'){
             const paypalProcess = new PaypalController()
-            const order = await paypalProcess.createOrder([])
+            const order = await paypalProcess.createOrder(req.body.carts)
             return res.status(200).json({
                 order
             })
@@ -223,7 +223,8 @@ export class CheckoutController {
         const receiverEmail = req?.user?.email || userEmail
         const receiverName = req?.user?.name || userName
 
-       
+        this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts)
+
         const adminEmail = await AdminEmail.findOne()
         if(adminEmail){
             this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts)

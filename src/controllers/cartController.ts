@@ -38,7 +38,7 @@ export class CartController {
             const carts = await Cart.find({user: req.user._id})
 
             if(carts.length > 0){
-                const product = carts.find((product:any) => product.product._id == req.body.productId)
+                const product = carts.find((product:any) => product.product._id == req.body.productId && product.product.size == req.body.size && product.product.color == req.body.color)
 
                 if(product){
 
@@ -55,14 +55,14 @@ export class CartController {
                             }
                         })
                     }
-
-                    
                 }
             }
             
             await Cart.create({
                 user: req.user._id,
                 product: req.body.productId,
+                size: req.body.size,
+                color: req.body.color,
                 quantity: req.body.quantity,
             })
 
@@ -88,7 +88,7 @@ export class CartController {
             if(results.length > 0) 
                 return res.status(422).json({ status: 'fail', message: results })
 
-            const cart = await Cart.findOne({user: req.user._id, product: req.body.productId})
+            const cart = await Cart.findOne({user: req.user._id, product: req.body.productId, size: req.body.size, color: req.body.color})
 
             if(!cart) 
                 return res.status(404).json({
@@ -171,10 +171,11 @@ export class CartController {
                     if(quantity > productDB.stock) quantity = productDB.stock
                 }
                 
-
                 cartItems.push({
                     user: req.user._id,
                     product: item.productId,
+                    size: item.size,
+                    color: item.color,
                     quantity: quantity
                 })
             }
@@ -189,16 +190,15 @@ export class CartController {
                     const product = cartItems.find((product:any) => product.product != item?.product)
                     if(product){
 
-                        //console.log('if', product)
-
                         await Cart.create({
                             user: req.user._id,
                             product: product.product,
+                            size: product.size,
+                            color: product.color,
                             quantity: item.quantity,
                         })
 
                     }else{
-                        //console.log('else', item)
                         await Cart.findByIdAndUpdate(item._id, {quantity: item.quantity})
                     }   
                     
