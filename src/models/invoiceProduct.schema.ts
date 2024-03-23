@@ -24,7 +24,7 @@ const invoiceProductSchema = new Schema({
 })
 
 invoiceProductSchema.pre(/^find/, function(this: any, next){
-    this.populate('product');
+    this.populate('product').populate('size').populate('color');
     next();
 })
 

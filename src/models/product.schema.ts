@@ -32,19 +32,23 @@ const ProductSchema = new Schema({
         type: Number,
         default: 0
     },
-    stock: {
-        type: Number,
-        default: 1
-    },
+    productVariations: [
+        {
+            size: [
+                {type: Schema.Types.ObjectId, ref: Size}
+            ],
+            color: [
+                {type: Schema.Types.ObjectId, ref: Color}
+            ],
+            stock: {
+                type: Number,
+                default: 1
+            },
+        }
+    ],
     mainImage: {
         type: String
     },
-    sizes: [
-        {type: Schema.Types.ObjectId, ref: Size}
-    ],
-    colors: [
-        {type: Schema.Types.ObjectId, ref: Color}
-    ],
     categories: [
         {type: Schema.Types.ObjectId, ref: Category}
     ],
@@ -75,7 +79,7 @@ ProductSchema.pre<Query<any, any>>(/^find/, function(next){
 })
 
 ProductSchema.pre<Query<any, any>>(/^find/, function(next){
-    this.populate('colors').populate('sizes').populate('categories')
+    this.populate('categories')
     next()
 })
 

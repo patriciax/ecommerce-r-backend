@@ -19,11 +19,9 @@ export class ProductController {
         if(!req.body.description) errors.push('Descripción es requerido')
         if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
         if(!req.body.price) errors.push('Price es requerido')
-        if(!req.body.stock) errors.push('Stock es requerido')
         if(!req.body.categories) errors.push('Price es requerido')
-        if(!req.body.sizes) errors.push('Tallas son requeridas')
-        if(!req.body.colors) errors.push('Precio es requerido')
         if(!req.body.mainImage) errors.push('Imágen principal es requerida')
+        if(!req.body.productVariations) errors.push('Variaciones del producto es requerido')
 
         return errors
     }
@@ -37,10 +35,8 @@ export class ProductController {
         if(!req.body.description) errors.push('Descripción es requerido')
         if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
         if(!req.body.price) errors.push('Price es requerido')
-        if(!req.body.stock) errors.push('Stock es requerido')
         if(!req.body.categories) errors.push('Price es requerido')
-        if(!req.body.sizes) errors.push('Tallas son requeridas')
-        if(!req.body.colors) errors.push('Precio es requerido')
+        if(!req.body.productVariations) errors.push('Variaciones del producto es requerido')
 
         return errors
     }
@@ -133,27 +129,23 @@ export class ProductController {
                 categories: req.body.categories.map((category: any) => category.id),
                 name: req.body.title,
                 nameEnglish: req.body.titleEnglish,
-                sizes: req.body.sizes.map((size: any) => size.id),
-                colors: req.body.colors.map((color: any) => color.id)
             }
 
             const tags = await this.setTags(fieldsToTag)
 
             const product = await Product.create({
                 categories: req.body.categories.map((category: any) => category.id),
-                sizes: req.body.sizes.map((size: any) => size.id),
-                colors: req.body.colors.map((color: any) => color.id),
                 name: req.body.title,
                 nameEnglish: req.body.titleEnglish,
                 description: req.body.description,
                 descriptionEnglish: req.body.descriptionEnglish,
-                stock: req.body.stock,
                 price: req.body.price,
                 priceDiscount: req.body.priceDiscount,
                 mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                 images: images,
                 showInHomeSection: req.body.showInHomeSection,
                 slug: slug,
+                productVariations: req.body.productVariations,
                 tags: tags
             })
 
@@ -164,6 +156,7 @@ export class ProductController {
 
         }
         catch(err: any){
+            console.log(err)
             res.status(500).json({ message: err.message })
         }
 
@@ -239,9 +232,7 @@ export class ProductController {
             const fieldsToTag = {
                 categories: req.body.categories.map((category: any) => category.id ?? category),
                 name: req.body.name,
-                nameEnglish: req.body.nameEnglish,
-                sizes: req.body.sizes.map((size: any) => size.id ?? size),
-                colors: req.body.colors.map((color: any) => color.id ?? color),
+                nameEnglish: req.body.nameEnglish
             }
 
             const tags = await this.setTags(fieldsToTag)
@@ -249,8 +240,6 @@ export class ProductController {
             const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
                 showInHomeSection: req.body.showInHomeSection,
                 categories: req.body.categories.map((category: any) => category.id ?? category),
-                sizes: req.body.sizes.map((size: any) => size.id ?? size),
-                colors: req.body.colors.map((color: any) => color.id ?? color),
                 name: req.body.name,
                 nameEnglish: req.body.nameEnglish,
                 description: req.body.description,
@@ -259,7 +248,8 @@ export class ProductController {
                 price: req.body.price,
                 priceDiscount: req.body.priceDiscount,
                 mainImage: req.body.mainImage ? `${process.env.CDN_ENDPOINT}/${mainImagePath}` : product.mainImage,
-                images: req.body.images.length > 0 ? images : product.images
+                images: req.body.images.length > 0 ? images : product.images,
+                productVariations: req.body.productVariations,
             }, {
                 new: true,
                 runValidators: true
@@ -350,7 +340,8 @@ export class ProductController {
     public getProduct = async(req:Request, res:Response) => {
         try{
 
-            const product = await Product.findById(req.params.id);
+            const product = await Product.findById(req.params.id).populate('productVariations.size')
+            .populate('productVariations.color');
 
             if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
 

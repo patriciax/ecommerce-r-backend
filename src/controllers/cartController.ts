@@ -13,7 +13,7 @@ declare global {
 export class CartController {
 
     private validateInput = async(req:Request) => {
-        const errors = []
+        const errors:any = []
 
         if(!req.body.productId) errors.push('PRODUCT_ID_IS_REQUIRED')
         if(!req.body.quantity) errors.push('QUANTITY_IS_REQUIRED')
@@ -22,7 +22,9 @@ export class CartController {
         const product = await Product.findById(req.body.productId)
         if(!product) errors.push('PRODUCT_NOT_FOUND')
 
-        if(product && req.body.quantity > product.stock) errors.push('QUANTITY_EXCEEDS_STOCK')
+        const stock = product?.productVariations.find((item) => item.color[0]._id == req.body.color && item.size[0]._id == req.body.size)?.stock ?? 0
+
+        if(product && req.body.quantity > stock) errors.push('QUANTITY_EXCEEDS_STOCK')
 
         return errors
     }
@@ -38,11 +40,18 @@ export class CartController {
             const carts = await Cart.find({user: req.user._id})
 
             if(carts.length > 0){
-                const product = carts.find((product:any) => product.product._id == req.body.productId && product.product.size == req.body.size && product.product.color == req.body.color)
+
+                const product = carts.find((product:any) => product.product == req.body.productId && product.size == req.body.size && product.color == req.body.color)
 
                 if(product){
 
-                    const cartModel = await Cart.findOne({user: req.user._id, product: product.product  })
+                    const cartModel = await Cart.findOne({user: req.user._id, product: product.product, size: product.size, color: product.color})
+                    const productModel = await Product.findById(product.product)
+                    const productStock = productModel?.productVariations.find((item) => item.color[0]._id == req.body.color && item.size[0]._id == req.body.size)?.stock ?? 0
+
+                    if(productStock < cartModel?.quantity + req.body.quantity) 
+                        return res.status(422).json({ status: 'fail', message: 'QUANTITY_EXCEEDS_STOCK' })
+
                     if(cartModel){
                         
                         cartModel.quantity = cartModel.quantity + req.body.quantity
@@ -149,7 +158,7 @@ export class CartController {
 
             const cartItems = []
 
-            for(const item of req.body.cartItems){
+            /*for(const item of req.body.cartItems){
                 const product = products.find((product:any) => product.product === item.productId)
                 let productDB = null
                 try{
@@ -204,7 +213,7 @@ export class CartController {
                     
                 }
 
-            }
+            }*/
 
             return res.status(200).json({
                 status: 'success',
@@ -229,9 +238,13 @@ export class CartController {
             
             const produtsWithQuantity = products.map((product:any) => {
                 const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId == product._id)
-              
+                
+                const variations = product.productVariations.find((variation:any) => variation.color == cartProduct.color && variation.size == cartProduct.size)
+
                 return {
                     ...product,
+                    size: variations?.size[0],
+                    color: variations?.color[0],
                     quantity: cartProduct.quantity > product.stock ? product.stock : cartProduct.quantity
                 }
             })
@@ -243,6 +256,9 @@ export class CartController {
                 }
             })
         }catch(err){
+
+            console.log(err)
+
             return res.status(500).json({
                 status: 'fail',
                 message: 'SOMETHING_WENT_WRONG'

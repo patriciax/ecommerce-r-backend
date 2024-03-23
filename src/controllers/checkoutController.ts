@@ -136,14 +136,14 @@ export class CheckoutController {
                 break;
             }
 
-            if(cart.quantity > product.stock){
+            /*if(cart.quantity > product.stock){
                 cartProductsOverStock = true
                 productOverStock.push(product.name)
-            }
+            }*/
 
         }
 
-        if(cartProductsOverStock){
+        /*if(cartProductsOverStock){
             return {
                 status: 'fail',
                 message: 'PRODUCT_OVER_STOCK',
@@ -151,7 +151,7 @@ export class CheckoutController {
                     productOverStock
                 }
             }
-        }
+        }*/
 
         return {
             status: 'success'
@@ -236,13 +236,13 @@ export class CheckoutController {
 
     private subsctractStock = async(carts:any) => {
             
-        for(let cart of carts){
+        /*for(let cart of carts){
             const product = await Product.findById(cart.productId)
             if(product){
                 product.stock = product.stock - cart.quantity
                 await product.save()
             }
-        }
+        }*/
     }
 
     private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any) => {
