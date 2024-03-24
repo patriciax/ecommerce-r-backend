@@ -158,7 +158,7 @@ export class CartController {
 
             const cartItems = []
 
-            /*for(const item of req.body.cartItems){
+            for(const item of req.body.cartItems){
                 const product = products.find((product:any) => product.product === item.productId)
                 let productDB = null
                 try{
@@ -169,15 +169,16 @@ export class CartController {
                 if(productDB === null) continue
 
                 let quantity = 0
+                const variation = productDB.productVariations.find((variation:any) => variation.color[0]._id == item.color && variation.size[0]._id == item.size)
 
                 if(product){
-
+                    
                     quantity = product.quantity + item.quantity
-                    if(quantity > productDB.stock) quantity = productDB.stock
+                    variation?.stock ? quantity > variation.stock ? quantity = variation.stock : quantity : 0
 
                 }else{
                     quantity = item.quantity
-                    if(quantity > productDB.stock) quantity = productDB.stock
+                    variation?.stock ? quantity > variation.stock ? quantity = variation.stock : quantity : 0
                 }
                 
                 cartItems.push({
@@ -213,7 +214,7 @@ export class CartController {
                     
                 }
 
-            }*/
+            }
 
             return res.status(200).json({
                 status: 'success',
@@ -234,25 +235,27 @@ export class CartController {
 
         try{
 
-            const products = await Product.find({_id: {$in: req.body.cartProducts.map((product:any) => product.productId)}}).lean()
-            
-            const produtsWithQuantity = products.map((product:any) => {
-                const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId == product._id)
-                
-                const variations = product.productVariations.find((variation:any) => variation.color == cartProduct.color && variation.size == cartProduct.size)
+            const products:any = await Product.find({_id: {$in: req.body.cartProducts.map((product:any) => product.productId)}}).populate('productVariations.size').populate('productVariations.color').lean()
 
-                return {
-                    ...product,
-                    size: variations?.size[0],
-                    color: variations?.color[0],
-                    quantity: cartProduct.quantity > product.stock ? product.stock : cartProduct.quantity
-                }
+            const productsWithQuantity:any = []
+
+            req.body.cartProducts.forEach((cartProduct:any) => {
+
+                const variationToAdd:any = products.find((product:any) => product._id == cartProduct.productId)?.productVariations.find((variation:any) => variation.color[0]._id == cartProduct.color?._id && variation.size[0]._id == cartProduct.size?._id)
+
+                productsWithQuantity.push({
+                    ...products.find((product:any) => product._id == cartProduct.productId),
+                    size: variationToAdd?.size[0],
+                    color: variationToAdd?.color[0],
+                    stock: variationToAdd?.stock,
+                    quantity: variationToAdd?.stock ? cartProduct.quantity >  variationToAdd?.stock ? variationToAdd?.stock : cartProduct.quantity : 0
+                })
             })
 
             return res.status(200).json({
                 status: 'success',
                 data: {
-                    "cart": produtsWithQuantity
+                    "cart": productsWithQuantity
                 }
             })
         }catch(err){
@@ -271,14 +274,19 @@ export class CartController {
 
         try{
 
-            const products = await Cart.find({user: req.user._id}).populate('product').lean()
+            const products = await Cart.find({user: req.user._id}).populate('product').populate('size').populate('color').lean()
 
             const carts = products.map((product:any) => {
+
+                const variationToAdd:any = product.product.productVariations.find((variation:any) => variation.color[0].toString() == product.color?._id.toString() && variation.size[0].toString() == product.size?._id.toString())
 
                 if(product.product) 
                     return {
                         ...product.product,
-                        quantity: product.quantity > product.product.stock ? product.product.stock : product.quantity
+                        size: product.size,
+                        color: product.color,
+                        stock: variationToAdd?.stock ?? 0,
+                        quantity: product.quantity > variationToAdd?.stock ? variationToAdd?.stock : product.quantity
                     }
 
             })
@@ -286,7 +294,7 @@ export class CartController {
             return res.status(200).json({
                 status: 'success',
                 data: {
-                    "cart": products
+                    "cart": carts
                 }
             })
         }catch(err){
