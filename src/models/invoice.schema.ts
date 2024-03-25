@@ -27,6 +27,9 @@ const invoiceSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "Payment"
     },
+    carrier:{
+        type: Object
+    },
     created:{
         type: Date,
         default: Date.now

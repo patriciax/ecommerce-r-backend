@@ -22,7 +22,7 @@ export class CartController {
         const product = await Product.findById(req.body.productId)
         if(!product) errors.push('PRODUCT_NOT_FOUND')
 
-        const stock = product?.productVariations.find((item) => item.color[0]._id == req.body.color && item.size[0]._id == req.body.size)?.stock ?? 0
+        const stock = product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)?.stock ?? 0
 
         if(product && req.body.quantity > stock) errors.push('QUANTITY_EXCEEDS_STOCK')
 

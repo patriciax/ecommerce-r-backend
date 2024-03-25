@@ -242,6 +242,7 @@ export class CheckoutController {
             phone: userPhone,
             transactionOrder: order,
             payment: paymentModel._id,
+            carrier: req.body.carrier
         })
 
         const invoiceProducts = []
