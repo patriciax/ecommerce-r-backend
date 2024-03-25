@@ -34,11 +34,8 @@ export class PaypalController {
     }
 
     public createOrder = async (cart:any) => {
-        // use the cart information passed from the front-end to calculate the purchase unit details
-        console.log(
-          "shopping cart information passed from the frontend createOrder() callback:",
-          cart,
-        );
+        
+      const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
         
         const accessToken = await this.generateAccessToken();
         const url = `${this.baseUrl()}/v2/checkout/orders`;
@@ -48,7 +45,7 @@ export class PaypalController {
             {
               amount: {
                 currency_code: "USD",
-                value: "100.00",
+                value: total,
               },
             },
           ],
@@ -84,7 +81,6 @@ export class PaypalController {
 
             const accessToken = await this.generateAccessToken();
             const url = `${this.baseUrl()}/v2/checkout/orders/${orderID}/capture`;
-            console.log(url)
 
             const response = await axios.post(url, null, {
                 headers: {

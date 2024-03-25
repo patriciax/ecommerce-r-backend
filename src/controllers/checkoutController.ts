@@ -31,9 +31,18 @@ export class CheckoutController {
     ]
     
     public paymentProcess = async (req: any, res: any) => {
+        
+        let tracnsactionOrder = ''
+        if((req.body.paymentMethod !== 'paypal-approve-order')){
+            const result = await this.validateCart(req.body.carts)
+        
+            if(result?.status != 'success'){
+                return res.status(200).json(result)
+            }
 
-        this.validateCart(req.body.carts)
-        const tracnsactionOrder = await this.generateInvoiceOrder()
+            tracnsactionOrder = await this.generateInvoiceOrder()
+
+        }
 
         if(req.body.paymentMethod === 'credits'){
             
@@ -43,42 +52,79 @@ export class CheckoutController {
             const paypalProcess = new PaypalController()
             const order = await paypalProcess.createOrder(req.body.carts)
             return res.status(200).json({
-                order
+                order,
+                "transactionOrder": tracnsactionOrder
             })
         }
 
         else if(req.body.paymentMethod === 'paypal-approve-order'){
-            const paypalProcess = new PaypalController()
-            const response = await paypalProcess.captureOrder(req.body.orderId)
+            try{
 
-            console.log(response)
-            //this.generateInvoice(req, response)
+                const paypalProcess = new PaypalController()
+                const response = await paypalProcess.captureOrder(req.body.orderId)
 
-            return res.status(200).json({
-                response
-            })
+                const payment = await this.generatePayment(req, 'paypal', req.body.orderId)
+
+                if(response.status == 'COMPLETED'){
+
+                    const invoice = await this.generateInvoice(req, req.body.orderId, payment)
+
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    })
+                }
+
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+
+            }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+            }
         }
 
         else if(req.body.paymentMethod === 'banesco'){
-            const banescoProcess = new BanescoController()
-            const response = await banescoProcess.makePayment(req.body.banescoData)
+            try{
 
-            const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder)
+                const banescoProcess = new BanescoController()
+                const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts)
 
-            if(response.success){
+                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder)
 
-                await this.generateInvoice(req, tracnsactionOrder, payment)
+                if(response.success){
 
-                return res.status(200).json({
-                    status: 'success',
-                    message: 'PAYMENT_SUCCESS'
+                    const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    })
+                }
+
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+
+            }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
                 })
             }
-
-            return res.status(200).json({
-                status: 'fail',
-                message: 'PAYMENT_FAILED'
-            })
 
         }
 
@@ -130,20 +176,18 @@ export class CheckoutController {
 
         for(let cart of carts){
             const product = await Product.findById(cart.productId)
-            
-            if(!product) {
-                cartProductsOverStock = true
-                break;
-            }
+            const productVariation = product?.productVariations.find((variation:any) => variation.color == cart.color._id && variation.size == cart.size._id)
 
-            /*if(cart.quantity > product.stock){
-                cartProductsOverStock = true
-                productOverStock.push(product.name)
-            }*/
+            if(product && productVariation){
+                if(cart.quantity > productVariation?.stock){
+                    cartProductsOverStock = true
+                    productOverStock.push(product.name)
+                }
+            }
 
         }
 
-        /*if(cartProductsOverStock){
+        if(cartProductsOverStock){
             return {
                 status: 'fail',
                 message: 'PRODUCT_OVER_STOCK',
@@ -151,7 +195,7 @@ export class CheckoutController {
                     productOverStock
                 }
             }
-        }*/
+        }
 
         return {
             status: 'success'
@@ -162,12 +206,11 @@ export class CheckoutController {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
-        if(!req?.user?._id){
-            userName = req.body.name
-            userEmail = req.body.email
-            userPhone = req.body.phone
-        }
-
+        
+        userName = req?.user ? req?.user.name : req.body.name
+        userEmail = req?.user ? req?.user.email : req.body.email
+        userPhone = req?.user ? req?.user.phone : req.body.phone
+        
         const paymentModel = await Payment.create({
             user: req?.user?._id,   
             name: userName,
@@ -187,11 +230,10 @@ export class CheckoutController {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
-        if(!req?.user?._id){
-            userName = req.body.name
-            userEmail = req.body.email
-            userPhone = req.body.phone
-        }
+        
+        userName = req?.user ? req?.user.name : req.body.name
+        userEmail = req?.user ? req?.user.email : req.body.email
+        userPhone = req?.user ? req?.user.phone : req.body.phone
         
         const invoice = await Invoice.create({
             user: req?.user?._id,
@@ -206,14 +248,20 @@ export class CheckoutController {
 
         for(let cart of req.body.carts){
 
-            const productModel = await Product.findById(cart.id)
+            const productModel = cart.name
+            const sizeModel = cart.size.name
+            const colorModel = cart.color.name
 
             invoiceProducts.push(
                 {
                     invoice: invoice._id,
-                    product: cart.id,
+                    product: cart.productId,
                     quantity: cart.quantity,
-                    productModel: productModel ? productModel.name : null
+                    size: cart.size._id,
+                    color: cart.color._id,
+                    productModel: productModel,
+                    colorModel: colorModel,
+                    sizeModel: sizeModel
                 }
             )
 
@@ -227,28 +275,29 @@ export class CheckoutController {
 
         const adminEmail = await AdminEmail.findOne()
         if(adminEmail){
-            this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts)
+            this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true)
         }
 
         this.subsctractStock(req.body.carts)
-
+        return invoice
     }
 
     private subsctractStock = async(carts:any) => {
             
-        /*for(let cart of carts){
+        for(let cart of carts){
             const product = await Product.findById(cart.productId)
-            if(product){
-                product.stock = product.stock - cart.quantity
+            const productVariationIndex = product?.productVariations.findIndex((variation:any) => variation.color == cart.color._id && variation.size == cart.size._id)
+            if(productVariationIndex != undefined && product){
+                product.productVariations[productVariationIndex].stock = product.productVariations[productVariationIndex].stock - cart.quantity
                 await product.save()
             }
-        }*/
+        }
     }
 
-    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any) => {
+    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false) => {
 
         const emailController = new EmailController()
-        emailController.sendEmail("invoice", email, "Factura ERoca", {
+        emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
             "invoiceNumber": invoiceNumber,
             "user": name,
             "carts": carts

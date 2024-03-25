@@ -6,6 +6,6 @@ Los productos comprados fueron:
 
 <ul>
     {{#each carts}}
-        <li>{{this.productModel}} - {{this.quantity}}</li>
+        <li>{{this.productModel}} - {{ this.sizeModel }} - {{this.colorModel}} {{this.quantity}}</li>
     {{/each}}
 </ul>
