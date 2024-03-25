@@ -1,5 +1,6 @@
 import axios from "axios";
 import { DolarPrice } from "../models/dolarPrice.schema";
+import { Request, Response } from "express";
 
 
 export class DolarPriceController{
@@ -22,10 +23,15 @@ export class DolarPriceController{
             dolarPrice.updatedAt = new Date()
             dolarPrice.save()
             
-        }
+        }       
 
-        
+    }
 
+    public getDolarPrice = async(req: Request, res: Response) => {
+        const dolarPrice = await DolarPrice.findOne();
+        return res.status(200).json({
+            price: dolarPrice?.price
+        })
     }
 
 }
