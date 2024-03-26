@@ -9,6 +9,7 @@ import { Payment } from "../models/payments.schema";
 import { InvoiceProduct } from "../models/invoiceProduct.schema";
 import { EmailController } from "./emailController";
 import { AdminEmail } from "../models/adminEmail.schema";
+import { Cart } from "../models/cart.schema";
 
 declare global {
     namespace Express {
@@ -69,6 +70,8 @@ export class CheckoutController {
 
                     const invoice = await this.generateInvoice(req, req.body.orderId, payment)
 
+                    this.clearCarts(req)
+
                     return res.status(200).json({
                         status: 'success',
                         message: 'PAYMENT_SUCCESS',
@@ -104,6 +107,8 @@ export class CheckoutController {
 
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
 
+                    this.clearCarts(req)
+
                     return res.status(200).json({
                         status: 'success',
                         message: 'PAYMENT_SUCCESS',
@@ -135,7 +140,7 @@ export class CheckoutController {
 
     }
 
-    private generateInvoiceOrder = async() => {
+    public generateInvoiceOrder = async() => {
 
         let transactionOrder = ''
         let exists = true;
@@ -202,7 +207,7 @@ export class CheckoutController {
         }
     }
 
-    private generatePayment = async(req:Request, payment:string, order:string) => {
+    public generatePayment = async(req:Request, payment:string, order:string) => {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -225,7 +230,7 @@ export class CheckoutController {
 
     }
 
-    private generateInvoice = async(req:Request, order:string, paymentModel:any) => {
+    public generateInvoice = async(req:Request, order:string, paymentModel:any) => {
         
         let userName = ''
         let userEmail = ''
@@ -303,6 +308,12 @@ export class CheckoutController {
             "user": name,
             "carts": carts
         })
+    }
+
+    private clearCarts = async(req:Request) => {
+
+        await Cart.deleteMany({ user: req?.user?._id })
+
     }
 
 }

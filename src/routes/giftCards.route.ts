@@ -18,4 +18,6 @@ router.post('/create-credit-card-roca', authMiddleware, creditCardRocaController
 router.post('/validate-credit-card-roca', authMiddleware, creditCardRocaController.validateGifCardOtp)
 router.post('/verify-credits-credit-card-roca', authMiddleware, creditCardRocaController.verifyCredits)
 
+router.post('/purchase', authMiddleware, creditCardRocaController.purchaseCreditCardRoca)
+
 export default router;
