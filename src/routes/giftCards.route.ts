@@ -15,7 +15,6 @@ router.get('/:id', giftCardController.getGiftCard)
 router.patch('/:id', authMiddleware, restrictsTo(['COLOR-UPDATE']), giftCardController.updateGiftCard)
 
 router.post('/create-credit-card-roca', authMiddleware, creditCardRocaController.createCreditCardRoca)
-router.post('/validate-credit-card-roca', authMiddleware, creditCardRocaController.validateGifCardOtp)
 router.post('/verify-credits-credit-card-roca', authMiddleware, creditCardRocaController.verifyCredits)
 
 router.post('/purchase', authMiddleware, creditCardRocaController.purchaseCreditCardRoca)
