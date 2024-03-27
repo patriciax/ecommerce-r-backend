@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import {GiftCard} from '../models/giftCard.schema'
 import { APIFeatures } from '../utils/apiFeatures'
+import { CreditCardRoca } from '../models/creditCardRoca.schema'
+import { EmailController } from './emailController'
 
 export class GiftCardController {
 
@@ -143,5 +145,4 @@ export class GiftCardController {
             })
         }
     }
-
 }

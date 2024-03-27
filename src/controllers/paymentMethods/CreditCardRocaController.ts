@@ -25,13 +25,6 @@ export class CreditCardRocaController {
         return errors
     }
 
-    private validateOTP = (request: Request) => {
-        const errors = []
-        if(!request.body.otp) errors.push('OTP_REQUIRED')
-
-        return errors
-    }
-
     public purchaseCreditCardRoca = async (req: Request, res: Response) => {
         try{
             const checkoutController = new CheckoutController()
@@ -42,7 +35,7 @@ export class CreditCardRocaController {
                     const banescoProcess = new BanescoController()
                     const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, req.body.card.total)
 
-                    const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder)
+                    const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response)
 
                     if(response.success){
 
@@ -143,7 +136,7 @@ export class CreditCardRocaController {
 
         try{
             
-            const creditCardRoca = await CreditCardRoca.find({ email: request?.user?.email })
+            const creditCardRoca = await CreditCardRoca.find({ email: request?.body?.email })
             if(!creditCardRoca){
                 return response.status(404).json({
                     status: 'fail',
@@ -151,24 +144,38 @@ export class CreditCardRocaController {
                 })
             }
 
-            let card = null
-            for (let creditCard of creditCardRoca) {
+            let cardPin = null
+            let credits = null
+            let cardNumber = null
 
-                if(await creditCard.verifyCardNumber(request.body.cardNumber) && await creditCard.verifyCardPin(request.body.cardPin)){
-                    card = creditCard
+            for (let card of creditCardRoca) {
+
+                cardNumber = await card.verifyCardNumber(request.body.cardNumber)
+                cardPin = await card.verifyCardPin(request.body.cardPin)
+                credits = card.credit
+
+                if(cardNumber && cardPin){
+                    break;
                 }
             }
 
-            if(!card){
+            if(!cardNumber || !cardPin){
                 return response.status(404).json({
                     status: 'fail',
                     message: 'CREDIT_CARD_NOT_FOUND'
                 })
             }
 
+            const emailController = new EmailController()
+            emailController.sendEmail("creditCardBalance", request.body.email, "Balance de GiftCard ERoca", {
+                "cardNumber": request.body.cardNumber,
+                "cardPin": request.body.cardPin,
+                "credits": credits
+            })
+
             return response.status(200).json({
                 status: 'success',
-                data: card.credit,
+                message: 'CREDIT_CARD_SENT'
             })
 
         }catch(error){

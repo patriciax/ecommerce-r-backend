@@ -64,7 +64,7 @@ export class CheckoutController {
                 const paypalProcess = new PaypalController()
                 const response = await paypalProcess.captureOrder(req.body.orderId)
 
-                const payment = await this.generatePayment(req, 'paypal', req.body.orderId)
+                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response)
 
                 if(response.status == 'COMPLETED'){
 
@@ -101,7 +101,7 @@ export class CheckoutController {
                 const banescoProcess = new BanescoController()
                 const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts)
 
-                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder)
+                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response)
 
                 if(response.success){
 
@@ -207,7 +207,7 @@ export class CheckoutController {
         }
     }
 
-    public generatePayment = async(req:Request, payment:string, order:string) => {
+    public generatePayment = async(req:Request, payment:string, order:string, response:any) => {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -223,7 +223,7 @@ export class CheckoutController {
             phone: userPhone,
             transactionId: order,
             type: payment,
-            status: 'approved'
+            status: response.status == 'COMPLETED' ? 'approved' : 'failed'
         })
 
         return paymentModel
