@@ -26,6 +26,8 @@ router.patch('/:id', authMiddleware, upload.fields([{ name: 'mainImage', maxCoun
 
 router.get('/product-home', productController.productInHome)
 
+router.get('/product-on-sale', productController.dailySaleProducts)
+
 router.get('/', productController.products)
 router.get('/:id', productController.getProduct)
 
