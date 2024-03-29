@@ -119,7 +119,16 @@ export class ProductController {
             }
 
             let slug = `${req.body.title}`
-            const results = await Product.find({slug: slug})
+            const results = await Product.find( 
+                {
+                    $or: [
+                        { deletedAt: null },
+                        { deletedAt: { $ne: null } }
+                    ]
+                },
+                {slug: slug})
+
+
             if(results.length > 0) {
                 slug = `${slug}-${Date.now()}`
             }
@@ -339,9 +348,11 @@ export class ProductController {
 
     public getProduct = async(req:Request, res:Response) => {
         try{
-
-            const product = await Product.findById(req.params.id).populate('productVariations.size')
+            let product = null
+            product = await Product.findById(req.params.id).populate('productVariations.size')
             .populate('productVariations.color');
+
+            if(!product) product = await Product.findOne({slug: req.params.id}).populate('productVariations.size').populate('productVariations.color');
 
             if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
 
@@ -361,9 +372,9 @@ export class ProductController {
     public productInHome = async(req:Request, res:Response) => {
         try{
 
-            const section1Products = await Product.find({showInHomeSection: 'section-1'}).limit(12);
-            const section2Products = await Product.find({showInHomeSection: 'section-2'}).limit(20);
-            const section3Products = await Product.find({showInHomeSection: 'section-3'}).limit(12);
+            const section1Products = await Product.find({showInHomeSection: 'section-1'}).sort({'createdAt': -1}).limit(12);
+            const section2Products = await Product.find({showInHomeSection: 'section-2'}).sort({'createdAt': -1}).limit(20);
+            const section3Products = await Product.find({showInHomeSection: 'section-3'}).sort({'createdAt': -1}).limit(12);
 
             return res.status(200).json({
                 status: 'success',
@@ -393,7 +404,13 @@ export class ProductController {
             .paginate()
             const products = await features.query
 
-            const totalProducts = await Product.find({ priceDiscount: { $ne: 0 }});
+            const productFeatures = new APIFeatures(Product.find({ priceDiscount: { $ne: 0 } }
+                ), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            
+            const totalProducts = await productFeatures.query;
             const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
             
             return res.status(200).json({
@@ -411,6 +428,54 @@ export class ProductController {
                 message: err.message
             })
         }
+    }
+
+    public searchProducts = async(req:Request, res:Response) => {
+
+        try{
+
+            const textSearch = this.replaceAccents(req.body.textSearch.toLowerCase())
+            const splittedText = textSearch.split(' ')
+            const categories = req.body.categories
+
+            const data = {
+                tags: { $in: splittedText },
+                categories: categories ? {$in: categories} : {$ne: []}
+            }
+
+            const features = new APIFeatures(Product.find(
+                data
+            ), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const products = await features.query
+
+            const totalProducts = await Product.find({ priceDiscount: { $ne: 0 }});
+            const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
+
+            console.log(products)
+
+            return res.status(200).json({
+                status: 'success',
+                totalPages: Math.ceil(totalPages),
+                results: products.length,
+                data: {
+                    products
+                }
+            })
+
+        }catch(err:any){
+
+            console.log(err)
+
+            return res.status(404).json({
+                status: 'fail',
+                message: 'PRODUCT_NOT_FOUND'
+            })
+        }
+
     }
 
 }

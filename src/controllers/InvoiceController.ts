@@ -8,7 +8,7 @@ export class InvoiceController {
 
         try{
 
-            const features = new APIFeatures(Invoice.find().populate('user'), req.query)
+            const features = new APIFeatures(Invoice.find().populate('user').populate("invoiceProduct"), req.query)
             .filter()
             .sort()
             .limitFields()
