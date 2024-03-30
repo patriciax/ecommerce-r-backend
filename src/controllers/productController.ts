@@ -349,7 +349,7 @@ export class ProductController {
     public getProduct = async(req:Request, res:Response) => {
         try{
             let product = null
-            product = await Product.findById(req.params.id).populate('productVariations.size')
+            product = await Product.findOne({id: req.params.id}).populate('productVariations.size')
             .populate('productVariations.color');
 
             if(!product) product = await Product.findOne({slug: req.params.id}).populate('productVariations.size').populate('productVariations.color');
@@ -454,8 +454,6 @@ export class ProductController {
 
             const totalProducts = await Product.find({ priceDiscount: { $ne: 0 }});
             const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
-
-            console.log(products)
 
             return res.status(200).json({
                 status: 'success',
