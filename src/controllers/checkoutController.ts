@@ -10,6 +10,8 @@ import { InvoiceProduct } from "../models/invoiceProduct.schema";
 import { EmailController } from "./emailController";
 import { AdminEmail } from "../models/adminEmail.schema";
 import { Cart } from "../models/cart.schema";
+import { CreditCardRoca } from "../models/creditCardRoca.schema";
+import { CreditCardRocaController } from "./paymentMethods/CreditCardRocaController";
 
 declare global {
     namespace Express {
@@ -45,8 +47,41 @@ export class CheckoutController {
 
         }
 
-        if(req.body.paymentMethod === 'credits'){
-            
+        if(req.body.paymentMethod === 'giftCard'){
+            try{
+
+                const creditCardRocaController = new CreditCardRocaController()
+                const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
+                
+                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response)
+
+                if(response?.status == 'success'){
+
+                    const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                    this.clearCarts(req)
+
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    })
+                }
+
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+
+            }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+            }
         }
 
         else if(req.body.paymentMethod === 'paypal-create-order'){

@@ -187,4 +187,87 @@ export class CreditCardRocaController {
 
     }
 
+    public updateCreditCardRoca = async(creditCard:any) => {
+        try{
+
+            const creditCardRoca = await CreditCardRoca.findByIdAndUpdate(creditCard._id, {credits: creditCard})
+            if(!creditCardRoca){
+                return {
+                    status: 'fail',
+                    message: 'CREDIT_CARD_NOT_FOUND'
+                }
+            }
+
+            return {
+                status: 'success',
+                message: 'CREDIT_CARD_UPDATED'
+            }
+
+        }catch(error){
+            return {
+                status: 'fail',
+                message: 'CREDIT_CARD_NOT_FOUND'
+            }
+        }
+    }
+
+    public makePayment = async(data:any, cart:any) => {
+        try{
+
+            const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+
+            const creditCardRoca = await CreditCardRoca.find({ email: data.email })
+            if(!creditCardRoca){
+                return {
+                    status: 'fail',
+                    message: 'CREDIT_CARD_NOT_FOUND'
+                }
+            }
+
+            let cardId = null
+            let cardPin = null
+            let credits = null
+            let cardNumber = null
+
+            for (let card of creditCardRoca) {
+
+                cardId = card.id
+                cardNumber = await card.verifyCardNumber(data.cardNumber)
+                cardPin = await card.verifyCardPin(data.cardPin)
+                credits = card.credit
+
+                if(cardNumber && cardPin){
+                    break;
+                }
+            }
+
+            if(!cardNumber || !cardPin || !credits){
+                return {
+                    status: 'fail',
+                    message: 'CREDIT_CARD_NOT_FOUND'
+                }
+            }
+
+            if(credits < total){
+                return {
+                    status: 'fail',
+                    message: 'INSUFFICIENT_CREDITS'
+                }
+            }
+
+            await CreditCardRoca.findByIdAndUpdate(cardId, {credits: credits - total})
+
+            return {
+                status: 'success',
+                message: 'PAYMENT_SUCCESS',
+            }
+
+        }catch(error){
+            return {
+                status: 'fail',
+                message: 'CREDIT_CARD_NOT_FOUND'
+            }
+        }
+    }
+
 }

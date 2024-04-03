@@ -1,4 +1,5 @@
 import axios from "axios"
+import { DolarPrice } from "../../models/dolarPrice.schema"
 
 export class BanescoController {
 
@@ -6,7 +7,8 @@ export class BanescoController {
         
         try{
 
-            const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+            const dolarPrice:any = await DolarPrice.findOne({}).sort({createdAt: -1})
+            const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0) * dolarPrice?.price ?? 1
 
             const response = await axios.post(`${process.env.BANESCO_API_URL}/payment`, {
                 "KeyId": process.env.BANESCO_PRIVATE_KEY,
