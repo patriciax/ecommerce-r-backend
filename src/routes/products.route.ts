@@ -28,7 +28,7 @@ router.get('/product-home', productController.productInHome)
 
 router.get('/product-on-sale', productController.dailySaleProducts)
 router.post('/product-search', productController.searchProducts)
-router.get('/category/:slug', productController.productsByCategory)
+router.get('/category/:categoryId', productController.productsByCategory)
 
 router.get('/', productController.products)
 router.get('/:id', productController.getProduct)
