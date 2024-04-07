@@ -476,4 +476,34 @@ export class ProductController {
 
     }
 
+    public productsByCategory = async(req:Request, res:Response) => {
+        try{
+
+            const features = new APIFeatures(Product.find({ categories: req.params.slug }), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const products = await features.query
+
+            const totalProducts = await Product.find({ categories: req.params.slug });
+            const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
+            
+            return res.status(200).json({
+                status: 'success',
+                totalPages: Math.ceil(totalPages),
+                results: products.length,
+                data: {
+                    products
+                }
+            })
+
+        }catch(err:any){
+            return res.status(404).json({
+                status: 'fail',
+                message: err.message
+            })
+        }
+    }
+
 }
