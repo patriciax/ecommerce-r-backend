@@ -74,9 +74,9 @@ app.listen(5000, () => {
     console.log('Server is running on port 5000')
 })
 
-const newsLetterJob = new NewsletterJob()
-const dolaPriceJob = new DolarPriceJob()
+// const newsLetterJob = new NewsletterJob()
+// const dolaPriceJob = new DolarPriceJob()
 
-newsLetterJob.sendNewsletter()
-dolaPriceJob.updateDolarPrice()
+// newsLetterJob.sendNewsletter()
+// dolaPriceJob.updateDolarPrice()
 
