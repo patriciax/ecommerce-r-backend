@@ -137,7 +137,7 @@ export class CheckoutController {
                 const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts)
 
                 const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response)
-
+                
                 if(response.success){
 
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
@@ -258,7 +258,7 @@ export class CheckoutController {
             phone: userPhone,
             transactionId: order,
             type: payment,
-            status: response.status == 'COMPLETED' ? 'approved' : 'failed'
+            status: response.status == 'COMPLETED' ? 'approved' : 'rejected'
         })
 
         return paymentModel

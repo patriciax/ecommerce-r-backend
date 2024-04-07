@@ -31,7 +31,7 @@ export class BanescoController {
             return response.data
 
         }catch(error){
-
+            
             return error
         }
 

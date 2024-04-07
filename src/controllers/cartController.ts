@@ -41,13 +41,13 @@ export class CartController {
 
             if(carts.length > 0){
 
-                const product = carts.find((product:any) => product.product == req.body.productId && product.size == req.body.size && product.color == req.body.color)
+                const product = carts.find((product:any) => product.product == req.body.productId && product.size == req.body.size._id && product.color == req.body.color._id)
 
                 if(product){
 
                     const cartModel = await Cart.findOne({user: req.user._id, product: product.product, size: product.size, color: product.color})
                     const productModel = await Product.findById(product.product)
-                    const productStock = productModel?.productVariations.find((item) => item.color[0]._id == req.body.color && item.size[0]._id == req.body.size)?.stock ?? 0
+                    const productStock = productModel?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)?.stock ?? 0
 
                     if(productStock < cartModel?.quantity + req.body.quantity) 
                         return res.status(422).json({ status: 'fail', message: 'QUANTITY_EXCEEDS_STOCK' })
@@ -125,7 +125,7 @@ export class CartController {
     public deleteProductFromCart = async(req:Request, res:Response) => {
         try{
 
-            const cart = await Cart.findByIdAndDelete(req.params.id)
+            const cart = await Cart.findOne({user: req.user._id, product: req.params.id})
 
             if(!cart){
                 return res.status(404).json({
@@ -135,6 +135,8 @@ export class CartController {
                     }
                 })
             }
+
+            await Cart.findByIdAndDelete(cart._id)
 
             return res.status(200).json({
                 status: 'success',
