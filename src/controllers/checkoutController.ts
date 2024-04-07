@@ -1,4 +1,3 @@
-import axios from "axios"
 import { PaypalController } from "./paymentMethods/PaypalController"
 import { BanescoController } from "./paymentMethods/BanescoController"
 import { Product } from "../models/product.schema"
