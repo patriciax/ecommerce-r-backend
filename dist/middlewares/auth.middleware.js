@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.restrictsTo = exports.authMiddleware = void 0;
+exports.restrictsTo = exports.authMiddlewareLoginNoRequired = exports.authMiddleware = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const user_schema_1 = require("../models/user.schema");
 const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
@@ -46,6 +46,27 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     next();
 });
 exports.authMiddleware = authMiddleware;
+const authMiddlewareLoginNoRequired = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    let splittedHeader = [];
+    if (req.headers.authorization) {
+        splittedHeader = req.headers.authorization.split(' ');
+    }
+    try {
+        if (splittedHeader.length > 0) {
+            const userInfo = (0, jsonwebtoken_1.verify)(splittedHeader[1], process.env.JWT_SECRET);
+            const user = yield user_schema_1.User.findById(userInfo._id).populate('role');
+            req.user = user;
+        }
+    }
+    catch (error) {
+        return res.status(401).json({
+            status: 'fail',
+            message: 'You are not authorized to access this resource'
+        });
+    }
+    next();
+});
+exports.authMiddlewareLoginNoRequired = authMiddlewareLoginNoRequired;
 const restrictsTo = (permissions) => {
     return (req, res, next) => {
         var _a, _b;

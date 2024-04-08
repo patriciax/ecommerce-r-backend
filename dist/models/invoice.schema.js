@@ -22,20 +22,27 @@ const invoiceSchema = new mongoose_1.Schema({
     shippingTracking: {
         type: String
     },
+    shippingService: {
+        type: String,
+    },
     payment: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Payment"
     },
-    products: {
-        type: [
-            {
-                type: mongoose_1.Schema.Types.ObjectId,
-                ref: "User"
-            },
-            {
-                type: Number
-            }
-        ]
+    carrier: {
+        type: Object
+    },
+    created: {
+        type: Date,
+        default: Date.now
     }
+}, {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+invoiceSchema.virtual('invoiceProduct', {
+    ref: 'InvoiceProduct',
+    localField: '_id',
+    foreignField: 'invoice'
 });
 exports.Invoice = (0, mongoose_1.model)('Invoice', invoiceSchema);

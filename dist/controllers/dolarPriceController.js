@@ -32,6 +32,12 @@ class DolarPriceController {
                 dolarPrice.save();
             }
         });
+        this.getDolarPrice = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne();
+            return res.status(200).json({
+                price: dolarPrice === null || dolarPrice === void 0 ? void 0 : dolarPrice.price
+            });
+        });
     }
 }
 exports.DolarPriceController = DolarPriceController;

@@ -19,10 +19,10 @@ const newsletter_route_1 = __importDefault(require("./routes/newsletter.route"))
 const checkout_route_1 = __importDefault(require("./routes/checkout.route"));
 const banners_route_1 = __importDefault(require("./routes/banners.route"));
 const zoom_route_1 = __importDefault(require("./routes/zoom.route"));
+const invoices_route_1 = __importDefault(require("./routes/invoices.route"));
+const dolarPrice_route_1 = __importDefault(require("./routes/dolarPrice.route"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
-const newsletter_job_1 = require("./jobs/newsletter.job");
-const dolarPrice_job_1 = require("./jobs/dolarPrice.job");
 const result = dotenv_1.default.config({ path: `${__dirname}/config.env` });
 const dbString = process.env.DATABASE || '';
 mongoose_1.default.connect(dbString).then(() => {
@@ -48,6 +48,8 @@ app.use("/api/v1/carts", carts_route_1.default);
 app.use("/api/v1/newsletter", newsletter_route_1.default);
 app.use("/api/v1/checkout", checkout_route_1.default);
 app.use("/api/v1/zoom", zoom_route_1.default);
+app.use("/api/v1/invoices", invoices_route_1.default);
+app.use("/api/v1/dolar-price", dolarPrice_route_1.default);
 app.all('*', (req, res, next) => {
     return res.status(404).json({
         status: 'fail',
@@ -57,7 +59,7 @@ app.all('*', (req, res, next) => {
 app.listen(5000, () => {
     console.log('Server is running on port 5000');
 });
-const newsLetterJob = new newsletter_job_1.NewsletterJob();
-const dolaPriceJob = new dolarPrice_job_1.DolarPriceJob();
-newsLetterJob.sendNewsletter();
-dolaPriceJob.updateDolarPrice();
+// const newsLetterJob = new NewsletterJob()
+// const dolaPriceJob = new DolarPriceJob()
+// newsLetterJob.sendNewsletter()
+// dolaPriceJob.updateDolarPrice()

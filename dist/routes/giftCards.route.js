@@ -13,6 +13,6 @@ router.get('/', giftCardController.giftCards);
 router.get('/:id', giftCardController.getGiftCard);
 router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['COLOR-UPDATE']), giftCardController.updateGiftCard);
 router.post('/create-credit-card-roca', auth_middleware_1.authMiddleware, creditCardRocaController.createCreditCardRoca);
-router.post('/validate-credit-card-roca', auth_middleware_1.authMiddleware, creditCardRocaController.validateGifCardOtp);
-router.post('/verify-credits-credit-card-roca', auth_middleware_1.authMiddleware, creditCardRocaController.verifyCredits);
+router.post('/purchase', auth_middleware_1.authMiddleware, creditCardRocaController.purchaseCreditCardRoca);
+router.post('/balance', creditCardRocaController.verifyCredits);
 exports.default = router;

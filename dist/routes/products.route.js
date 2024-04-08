@@ -25,6 +25,9 @@ router.delete('/:id', auth_middleware_1.authMiddleware, productController.delete
 router.post('/', auth_middleware_1.authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount_1.maxImagesCount }]), productController.createProduct);
 router.patch('/:id', auth_middleware_1.authMiddleware, upload.fields([{ name: 'mainImage', maxCount: 1 }, { name: 'images', maxCount: maxImagesCount_1.maxImagesCount }]), productController.updateProduct);
 router.get('/product-home', productController.productInHome);
+router.get('/product-on-sale', productController.dailySaleProducts);
+router.post('/product-search', productController.searchProducts);
+router.get('/category/:categoryId', productController.productsByCategory);
 router.get('/', productController.products);
 router.get('/:id', productController.getProduct);
 exports.default = router;

@@ -24,7 +24,7 @@ const ProductSchema = new mongoose_1.Schema({
     },
     showInHomeSection: {
         type: String,
-        enum: ['section-1', 'section-2', 'section-3'],
+        enum: ['', 'section-1', 'section-2', 'section-3'],
     },
     price: {
         type: Number,
@@ -34,19 +34,23 @@ const ProductSchema = new mongoose_1.Schema({
         type: Number,
         default: 0
     },
-    stock: {
-        type: Number,
-        default: 1
-    },
+    productVariations: [
+        {
+            size: [
+                { type: mongoose_1.Schema.Types.ObjectId, ref: size_schema_1.Size }
+            ],
+            color: [
+                { type: mongoose_1.Schema.Types.ObjectId, ref: color_schema_1.Color }
+            ],
+            stock: {
+                type: Number,
+                default: 1
+            },
+        }
+    ],
     mainImage: {
         type: String
     },
-    sizes: [
-        { type: mongoose_1.Schema.Types.ObjectId, ref: size_schema_1.Size }
-    ],
-    colors: [
-        { type: mongoose_1.Schema.Types.ObjectId, ref: color_schema_1.Color }
-    ],
     categories: [
         { type: mongoose_1.Schema.Types.ObjectId, ref: category_schema_1.Category }
     ],
@@ -70,7 +74,7 @@ ProductSchema.pre(/^find/, function (next) {
     next();
 });
 ProductSchema.pre(/^find/, function (next) {
-    this.populate('colors').populate('sizes').populate('categories');
+    this.populate('categories');
     next();
 });
 exports.Product = (0, mongoose_1.model)('Product', ProductSchema);

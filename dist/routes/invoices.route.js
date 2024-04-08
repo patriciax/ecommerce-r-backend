@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const InvoiceController_1 = require("../controllers/InvoiceController");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+const invoiceController = new InvoiceController_1.InvoiceController();
+router.get('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['INVOICE-LIST']), invoiceController.listInvoices);
+router.patch('/:invoice', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['INVOICE-UPDATE']), invoiceController.updateInvoice);
+exports.default = router;

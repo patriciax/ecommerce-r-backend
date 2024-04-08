@@ -11,9 +11,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CheckoutController = void 0;
 const PaypalController_1 = require("./paymentMethods/PaypalController");
+const BanescoController_1 = require("./paymentMethods/BanescoController");
 const product_schema_1 = require("../models/product.schema");
 const invoice_schema_1 = require("../models/invoice.schema");
 const randomNumbersGenerator_1 = require("../utils/randomNumbersGenerator");
+const payments_schema_1 = require("../models/payments.schema");
+const invoiceProduct_schema_1 = require("../models/invoiceProduct.schema");
+const emailController_1 = require("./emailController");
+const adminEmail_schema_1 = require("../models/adminEmail.schema");
+const cart_schema_1 = require("../models/cart.schema");
+const CreditCardRocaController_1 = require("./paymentMethods/CreditCardRocaController");
 class CheckoutController {
     constructor() {
         this.paymentMethods = [
@@ -25,24 +32,109 @@ class CheckoutController {
             'banesco'
         ];
         this.paymentProcess = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            this.validateCart(req.body.carts);
-            const tracnsactionOrder = yield this.generateInvoiceOrder();
-            const paypalProcess = new PaypalController_1.PaypalController();
-            if (req.body.paymentMethod === 'credits') {
+            let tracnsactionOrder = '';
+            if ((req.body.paymentMethod !== 'paypal-approve-order')) {
+                const result = yield this.validateCart(req.body.carts);
+                if ((result === null || result === void 0 ? void 0 : result.status) != 'success') {
+                    return res.status(200).json(result);
+                }
+                tracnsactionOrder = yield this.generateInvoiceOrder();
+            }
+            if (req.body.paymentMethod === 'giftCard') {
+                try {
+                    const creditCardRocaController = new CreditCardRocaController_1.CreditCardRocaController();
+                    const response = yield creditCardRocaController.makePayment(req.body, req.body.carts);
+                    const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, response);
+                    if ((response === null || response === void 0 ? void 0 : response.status) == 'success') {
+                        const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
+                        this.clearCarts(req);
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                invoice,
+                                cart: req.body.carts
+                            }
+                        });
+                    }
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+                catch (error) {
+                    console.log(error);
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
             }
             else if (req.body.paymentMethod === 'paypal-create-order') {
-                const order = yield paypalProcess.createOrder([]);
+                const paypalProcess = new PaypalController_1.PaypalController();
+                const order = yield paypalProcess.createOrder(req.body.carts);
                 return res.status(200).json({
-                    order
+                    order,
+                    "transactionOrder": tracnsactionOrder
                 });
             }
             else if (req.body.paymentMethod === 'paypal-approve-order') {
-                const response = yield paypalProcess.captureOrder(req.body.orderId);
-                console.log(response);
-                //this.generateInvoice(req, response)
-                return res.status(200).json({
-                    response
-                });
+                try {
+                    const paypalProcess = new PaypalController_1.PaypalController();
+                    const response = yield paypalProcess.captureOrder(req.body.orderId);
+                    const payment = yield this.generatePayment(req, 'paypal', req.body.orderId, response);
+                    if (response.status == 'COMPLETED') {
+                        const invoice = yield this.generateInvoice(req, req.body.orderId, payment);
+                        this.clearCarts(req);
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                invoice,
+                                cart: req.body.carts
+                            }
+                        });
+                    }
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+                catch (error) {
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+            }
+            else if (req.body.paymentMethod === 'banesco') {
+                try {
+                    const banescoProcess = new BanescoController_1.BanescoController();
+                    const response = yield banescoProcess.makePayment(req.body.banescoData, req.body.carts);
+                    const payment = yield this.generatePayment(req, 'banesco', tracnsactionOrder, response);
+                    if (response.success) {
+                        const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
+                        this.clearCarts(req);
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                invoice,
+                                cart: req.body.carts
+                            }
+                        });
+                    }
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+                catch (error) {
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
             }
             return res.status(200).json({
                 status: 'success',
@@ -80,13 +172,12 @@ class CheckoutController {
             const productOverStock = [];
             for (let cart of carts) {
                 const product = yield product_schema_1.Product.findById(cart.productId);
-                if (!product) {
-                    cartProductsOverStock = true;
-                    break;
-                }
-                if (cart.quantity > product.stock) {
-                    cartProductsOverStock = true;
-                    productOverStock.push(product.name);
+                const productVariation = product === null || product === void 0 ? void 0 : product.productVariations.find((variation) => variation.color == cart.color._id && variation.size == cart.size._id);
+                if (product && productVariation) {
+                    if (cart.quantity > (productVariation === null || productVariation === void 0 ? void 0 : productVariation.stock)) {
+                        cartProductsOverStock = true;
+                        productOverStock.push(product.name);
+                    }
                 }
             }
             if (cartProductsOverStock) {
@@ -102,34 +193,90 @@ class CheckoutController {
                 status: 'success'
             };
         });
-        this.generateInvoice = (req, payment, order) => __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+        this.generatePayment = (req, payment, order, response) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
             let userName = '';
             let userEmail = '';
             let userPhone = '';
-            if (!((_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a._id)) {
-                userName = req.body.name;
-                userEmail = req.body.email;
-                userPhone = req.body.phone;
-            }
-            yield invoice_schema_1.Invoice.create({
+            userName = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.name : req.body.name;
+            userEmail = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.email : req.body.email;
+            userPhone = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.phone : req.body.phone;
+            const paymentModel = yield payments_schema_1.Payment.create({
+                user: (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a._id,
+                name: userName,
+                email: userEmail,
+                phone: userPhone,
+                transactionId: order,
+                type: payment,
+                status: response.status == 'COMPLETED' ? 'approved' : 'rejected'
+            });
+            return paymentModel;
+        });
+        this.generateInvoice = (req, order, paymentModel) => __awaiter(this, void 0, void 0, function* () {
+            var _b, _c, _d;
+            let userName = '';
+            let userEmail = '';
+            let userPhone = '';
+            userName = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.name : req.body.name;
+            userEmail = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.email : req.body.email;
+            userPhone = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.phone : req.body.phone;
+            const invoice = yield invoice_schema_1.Invoice.create({
                 user: (_b = req === null || req === void 0 ? void 0 : req.user) === null || _b === void 0 ? void 0 : _b._id,
                 name: userName,
                 email: userEmail,
                 phone: userPhone,
-                transaction: order,
-                products: req.body.carts
+                transactionOrder: order,
+                payment: paymentModel._id,
+                carrier: req.body.carrier
             });
+            const invoiceProducts = [];
+            for (let cart of req.body.carts) {
+                const productModel = cart.name;
+                const sizeModel = cart.size.name;
+                const colorModel = cart.color.name;
+                invoiceProducts.push({
+                    invoice: invoice._id,
+                    product: cart.productId,
+                    quantity: cart.quantity,
+                    size: cart.size._id,
+                    color: cart.color._id,
+                    productModel: productModel,
+                    colorModel: colorModel,
+                    sizeModel: sizeModel
+                });
+            }
+            yield invoiceProduct_schema_1.InvoiceProduct.insertMany(invoiceProducts);
+            const receiverEmail = ((_c = req === null || req === void 0 ? void 0 : req.user) === null || _c === void 0 ? void 0 : _c.email) || userEmail;
+            const receiverName = ((_d = req === null || req === void 0 ? void 0 : req.user) === null || _d === void 0 ? void 0 : _d.name) || userName;
+            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts);
+            const adminEmail = yield adminEmail_schema_1.AdminEmail.findOne();
+            if (adminEmail) {
+                this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true);
+            }
             this.subsctractStock(req.body.carts);
+            return invoice;
         });
         this.subsctractStock = (carts) => __awaiter(this, void 0, void 0, function* () {
             for (let cart of carts) {
                 const product = yield product_schema_1.Product.findById(cart.productId);
-                if (product) {
-                    product.stock = product.stock - cart.quantity;
+                const productVariationIndex = product === null || product === void 0 ? void 0 : product.productVariations.findIndex((variation) => variation.color == cart.color._id && variation.size == cart.size._id);
+                if (productVariationIndex != undefined && product) {
+                    product.productVariations[productVariationIndex].stock = product.productVariations[productVariationIndex].stock - cart.quantity;
                     yield product.save();
                 }
             }
+        });
+        this.sendInvoiceEmail = (email, invoiceNumber, name, carts, isAdmin = false) => __awaiter(this, void 0, void 0, function* () {
+            const emailController = new emailController_1.EmailController();
+            emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
+                "invoiceNumber": invoiceNumber,
+                "user": name,
+                "carts": carts
+            });
+        });
+        this.clearCarts = (req) => __awaiter(this, void 0, void 0, function* () {
+            var _e;
+            yield cart_schema_1.Cart.deleteMany({ user: (_e = req === null || req === void 0 ? void 0 : req.user) === null || _e === void 0 ? void 0 : _e._id });
         });
     }
 }

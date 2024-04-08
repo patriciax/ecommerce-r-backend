@@ -21,7 +21,7 @@ class ZoomController {
             try {
                 const response = yield axios_1.default.get(`${process.env.ZOOM_API_URL}/getEstados`);
                 if (((_a = response.data) === null || _a === void 0 ? void 0 : _a.codrespuesta) === 'COD_000') {
-                    return res.status(400).json({
+                    return res.status(200).json({
                         status: 'success',
                         data: (_b = response.data) === null || _b === void 0 ? void 0 : _b.entidadRespuesta
                     });
@@ -45,7 +45,7 @@ class ZoomController {
             try {
                 const response = yield axios_1.default.get(`${process.env.ZOOM_API_URL}/getOficinaEstadoWs?codestado=${req.params.state}`);
                 if (((_c = response.data) === null || _c === void 0 ? void 0 : _c.codrespuesta) === 'COD_000') {
-                    return res.status(400).json({
+                    return res.status(200).json({
                         status: 'success',
                         data: (_d = response.data) === null || _d === void 0 ? void 0 : _d.entidadRespuesta
                     });
@@ -70,7 +70,7 @@ class ZoomController {
             try {
                 const response = yield axios_1.default.get(`${process.env.ZOOM_API_URL}/getInfoTracking?tipo_busqueda=1&codigo=${req.params.tracking}&codigo_cliente=${process.env.ZOOM_CLIENT}`);
                 if (((_e = response.data) === null || _e === void 0 ? void 0 : _e.codrespuesta) === 'COD_000') {
-                    return res.status(400).json({
+                    return res.status(200).json({
                         status: 'success',
                         data: (_f = response.data) === null || _f === void 0 ? void 0 : _f.entidadRespuesta
                     });
