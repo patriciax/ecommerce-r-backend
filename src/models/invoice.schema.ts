@@ -20,22 +20,29 @@ const invoiceSchema = new Schema({
     shippingTracking:{
         type:String
     },
+    shippingService:{
+        type:String,  
+    },
     payment:{
         type: Schema.Types.ObjectId,
         ref: "Payment"
     },
-    products: {
-        type: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "User"
-            },
-            {
-                type: Number
-            }
-        ]
-    }   
+    carrier:{
+        type: Object
+    },
+    created:{
+        type: Date,
+        default: Date.now
+    }
+},{
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+})
 
+invoiceSchema.virtual('invoiceProduct', {
+    ref: 'InvoiceProduct',
+    localField: '_id',
+    foreignField: 'invoice'
 })
 
 export const Invoice = model('Invoice', invoiceSchema);

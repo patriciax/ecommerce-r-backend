@@ -13,7 +13,7 @@ declare global {
 export class CartController {
 
     private validateInput = async(req:Request) => {
-        const errors = []
+        const errors:any = []
 
         if(!req.body.productId) errors.push('PRODUCT_ID_IS_REQUIRED')
         if(!req.body.quantity) errors.push('QUANTITY_IS_REQUIRED')
@@ -22,7 +22,11 @@ export class CartController {
         const product = await Product.findById(req.body.productId)
         if(!product) errors.push('PRODUCT_NOT_FOUND')
 
-        if(product && req.body.quantity > product.stock) errors.push('QUANTITY_EXCEEDS_STOCK')
+        const stock = product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)?.stock ?? 0
+
+        console.log(product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id))
+
+        if(product && req.body.quantity > stock) errors.push('QUANTITY_EXCEEDS_STOCK')
 
         return errors
     }
@@ -38,22 +42,38 @@ export class CartController {
             const carts = await Cart.find({user: req.user._id})
 
             if(carts.length > 0){
-                const product = carts.find((product:any) => product.product._id == req.body.productId)
+
+                const product = carts.find((product:any) => product.product == req.body.productId && product.size == req.body.size._id && product.color == req.body.color._id)
+
                 if(product){
-                    product.quantity += req.body.quantity
-                    product.save()
-                    return res.status(200).json({
-                        status: 'success',
-                        data: {
-                            message: 'PRODUCT_ADDED_TO_CART'
-                        }
-                    })
+
+                    const cartModel = await Cart.findOne({user: req.user._id, product: product.product, size: product.size, color: product.color})
+                    const productModel = await Product.findById(product.product)
+                    const productStock = productModel?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)?.stock ?? 0
+
+                    if(productStock < cartModel?.quantity + req.body.quantity) 
+                        return res.status(422).json({ status: 'fail', message: 'QUANTITY_EXCEEDS_STOCK' })
+
+                    if(cartModel){
+                        
+                        cartModel.quantity = cartModel.quantity + req.body.quantity
+                        await  cartModel.save()
+
+                        return res.status(200).json({
+                            status: 'success',
+                            data: {
+                                message: 'PRODUCT_ADDED_TO_CART'
+                            }
+                        })
+                    }
                 }
             }
             
-            Cart.create({
+            await Cart.create({
                 user: req.user._id,
                 product: req.body.productId,
+                size: req.body.size,
+                color: req.body.color,
                 quantity: req.body.quantity,
             })
 
@@ -79,7 +99,7 @@ export class CartController {
             if(results.length > 0) 
                 return res.status(422).json({ status: 'fail', message: results })
 
-            const cart = await Cart.findOne({user: req.user._id, product: req.body.productId})
+            const cart = await Cart.findOne({user: req.user._id, product: req.body.productId, size: req.body.size, color: req.body.color})
 
             if(!cart) 
                 return res.status(404).json({
@@ -107,7 +127,7 @@ export class CartController {
     public deleteProductFromCart = async(req:Request, res:Response) => {
         try{
 
-            const cart = await Cart.findByIdAndDelete(req.params.id)
+            const cart = await Cart.findOne({user: req.user._id, product: req.params.id})
 
             if(!cart){
                 return res.status(404).json({
@@ -117,6 +137,8 @@ export class CartController {
                     }
                 })
             }
+
+            await Cart.findByIdAndDelete(cart._id)
 
             return res.status(200).json({
                 status: 'success',
@@ -151,21 +173,23 @@ export class CartController {
                 if(productDB === null) continue
 
                 let quantity = 0
+                const variation = productDB.productVariations.find((variation:any) => variation.color[0]._id == item.color && variation.size[0]._id == item.size)
 
                 if(product){
-
+                    
                     quantity = product.quantity + item.quantity
-                    if(quantity > productDB.stock) quantity = productDB.stock
+                    variation?.stock ? quantity > variation.stock ? quantity = variation.stock : quantity : 0
 
                 }else{
                     quantity = item.quantity
-                    if(quantity > productDB.stock) quantity = productDB.stock
+                    variation?.stock ? quantity > variation.stock ? quantity = variation.stock : quantity : 0
                 }
                 
-
                 cartItems.push({
                     user: req.user._id,
                     product: item.productId,
+                    size: item.size,
+                    color: item.color,
                     quantity: quantity
                 })
             }
@@ -176,20 +200,21 @@ export class CartController {
 
             else{
 
-                const productsToInsert = []
-
                 for(const item of products){
-                    const product = cartItems.find((product:any) => product.product == item?.product)
-                    if(!product){
+                    const product = cartItems.find((product:any) => product.product != item?.product)
+                    if(product){
+
                         await Cart.create({
-                            product: item.product,
+                            user: req.user._id,
+                            product: product.product,
+                            size: product.size,
+                            color: product.color,
                             quantity: item.quantity,
                         })
 
-                        continue
-                    }
-
-                    await Cart.findByIdAndUpdate(item._id, {quantity: product.quantity})
+                    }else{
+                        await Cart.findByIdAndUpdate(item._id, {quantity: item.quantity})
+                    }   
                     
                 }
 
@@ -214,24 +239,33 @@ export class CartController {
 
         try{
 
-            const products = await Product.find({_id: {$in: req.body.cartProducts.map((product:any) => product.productId)}}).lean()
-            
-            const produtsWithQuantity = products.map((product:any) => {
-                const cartProduct = req.body.cartProducts.find((cartProduct:any) => cartProduct.productId == product._id)
-              
-                return {
-                    ...product,
-                    quantity: cartProduct.quantity > product.stock ? product.stock : cartProduct.quantity
-                }
+            const products:any = await Product.find({_id: {$in: req.body.cartProducts.map((product:any) => product.productId)}}).populate('productVariations.size').populate('productVariations.color').lean()
+
+            const productsWithQuantity:any = []
+
+            req.body.cartProducts.forEach((cartProduct:any) => {
+
+                const variationToAdd:any = products.find((product:any) => product._id == cartProduct.productId)?.productVariations.find((variation:any) => variation.color[0]._id == cartProduct.color?._id && variation.size[0]._id == cartProduct.size?._id)
+
+                productsWithQuantity.push({
+                    ...products.find((product:any) => product._id == cartProduct.productId),
+                    size: variationToAdd?.size[0],
+                    color: variationToAdd?.color[0],
+                    stock: variationToAdd?.stock,
+                    quantity: variationToAdd?.stock ? cartProduct.quantity >  variationToAdd?.stock ? variationToAdd?.stock : cartProduct.quantity : 0
+                })
             })
 
             return res.status(200).json({
                 status: 'success',
                 data: {
-                    "cart": produtsWithQuantity
+                    "cart": productsWithQuantity
                 }
             })
         }catch(err){
+
+            console.log(err)
+
             return res.status(500).json({
                 status: 'fail',
                 message: 'SOMETHING_WENT_WRONG'
@@ -244,14 +278,19 @@ export class CartController {
 
         try{
 
-            const products = await Cart.find({user: req.user._id}).populate('product').lean()
+            const products = await Cart.find({user: req.user._id}).populate('product').populate('size').populate('color').lean()
 
             const carts = products.map((product:any) => {
+
+                const variationToAdd:any = product.product.productVariations.find((variation:any) => variation.color[0].toString() == product.color?._id.toString() && variation.size[0].toString() == product.size?._id.toString())
 
                 if(product.product) 
                     return {
                         ...product.product,
-                        quantity: product.quantity > product.product.stock ? product.product.stock : product.quantity
+                        size: product.size,
+                        color: product.color,
+                        stock: variationToAdd?.stock ?? 0,
+                        quantity: product.quantity > variationToAdd?.stock ? variationToAdd?.stock : product.quantity
                     }
 
             })
@@ -259,7 +298,7 @@ export class CartController {
             return res.status(200).json({
                 status: 'success',
                 data: {
-                    "cart": products
+                    "cart": carts
                 }
             })
         }catch(err){

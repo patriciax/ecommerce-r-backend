@@ -19,11 +19,9 @@ export class ProductController {
         if(!req.body.description) errors.push('Descripción es requerido')
         if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
         if(!req.body.price) errors.push('Price es requerido')
-        if(!req.body.stock) errors.push('Stock es requerido')
         if(!req.body.categories) errors.push('Price es requerido')
-        if(!req.body.sizes) errors.push('Tallas son requeridas')
-        if(!req.body.colors) errors.push('Precio es requerido')
         if(!req.body.mainImage) errors.push('Imágen principal es requerida')
+        if(!req.body.productVariations) errors.push('Variaciones del producto es requerido')
 
         return errors
     }
@@ -37,10 +35,8 @@ export class ProductController {
         if(!req.body.description) errors.push('Descripción es requerido')
         if(!req.body.descriptionEnglish) errors.push('Descripcion en inglés es requerida')
         if(!req.body.price) errors.push('Price es requerido')
-        if(!req.body.stock) errors.push('Stock es requerido')
         if(!req.body.categories) errors.push('Price es requerido')
-        if(!req.body.sizes) errors.push('Tallas son requeridas')
-        if(!req.body.colors) errors.push('Precio es requerido')
+        if(!req.body.productVariations) errors.push('Variaciones del producto es requerido')
 
         return errors
     }
@@ -123,7 +119,16 @@ export class ProductController {
             }
 
             let slug = `${req.body.title}`
-            const results = await Product.find({slug: slug})
+            const results = await Product.find( 
+                {
+                    $or: [
+                        { deletedAt: null },
+                        { deletedAt: { $ne: null } }
+                    ]
+                },
+                {slug: slug})
+
+
             if(results.length > 0) {
                 slug = `${slug}-${Date.now()}`
             }
@@ -133,27 +138,23 @@ export class ProductController {
                 categories: req.body.categories.map((category: any) => category.id),
                 name: req.body.title,
                 nameEnglish: req.body.titleEnglish,
-                sizes: req.body.sizes.map((size: any) => size.id),
-                colors: req.body.colors.map((color: any) => color.id)
             }
 
             const tags = await this.setTags(fieldsToTag)
 
             const product = await Product.create({
                 categories: req.body.categories.map((category: any) => category.id),
-                sizes: req.body.sizes.map((size: any) => size.id),
-                colors: req.body.colors.map((color: any) => color.id),
                 name: req.body.title,
                 nameEnglish: req.body.titleEnglish,
                 description: req.body.description,
                 descriptionEnglish: req.body.descriptionEnglish,
-                stock: req.body.stock,
                 price: req.body.price,
                 priceDiscount: req.body.priceDiscount,
                 mainImage: `${process.env.CDN_ENDPOINT}/${mainImagePath}`,
                 images: images,
                 showInHomeSection: req.body.showInHomeSection,
                 slug: slug,
+                productVariations: req.body.productVariations,
                 tags: tags
             })
 
@@ -164,6 +165,7 @@ export class ProductController {
 
         }
         catch(err: any){
+            console.log(err)
             res.status(500).json({ message: err.message })
         }
 
@@ -239,9 +241,7 @@ export class ProductController {
             const fieldsToTag = {
                 categories: req.body.categories.map((category: any) => category.id ?? category),
                 name: req.body.name,
-                nameEnglish: req.body.nameEnglish,
-                sizes: req.body.sizes.map((size: any) => size.id ?? size),
-                colors: req.body.colors.map((color: any) => color.id ?? color),
+                nameEnglish: req.body.nameEnglish
             }
 
             const tags = await this.setTags(fieldsToTag)
@@ -249,8 +249,6 @@ export class ProductController {
             const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
                 showInHomeSection: req.body.showInHomeSection,
                 categories: req.body.categories.map((category: any) => category.id ?? category),
-                sizes: req.body.sizes.map((size: any) => size.id ?? size),
-                colors: req.body.colors.map((color: any) => color.id ?? color),
                 name: req.body.name,
                 nameEnglish: req.body.nameEnglish,
                 description: req.body.description,
@@ -259,7 +257,8 @@ export class ProductController {
                 price: req.body.price,
                 priceDiscount: req.body.priceDiscount,
                 mainImage: req.body.mainImage ? `${process.env.CDN_ENDPOINT}/${mainImagePath}` : product.mainImage,
-                images: req.body.images.length > 0 ? images : product.images
+                images: req.body.images.length > 0 ? images : product.images,
+                productVariations: req.body.productVariations,
             }, {
                 new: true,
                 runValidators: true
@@ -348,11 +347,12 @@ export class ProductController {
     }
 
     public getProduct = async(req:Request, res:Response) => {
+
+        let product = null
         try{
-
-            const product = await Product.findById(req.params.id);
-
-            if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
+            
+            product = await Product.findOne({_id: req.params.id}).populate('productVariations.size')
+            .populate('productVariations.color');
 
             return res.status(200).json({
                 status: 'success',
@@ -360,19 +360,34 @@ export class ProductController {
             })
 
         }catch(err){
-            return res.status(404).json({
-                status: 'fail',
-                message: 'No product found with that ID'
-            })
+
+            try{
+
+                if(!product) product = await Product.findOne({slug: req.params.id}).populate('productVariations.size').populate('productVariations.color');
+
+                if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
+
+                return res.status(200).json({
+                    status: 'success',
+                    data: product
+                })
+
+            }catch(error){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: 'No product found with that ID'
+                })       
+            }
+
         }
     }
 
     public productInHome = async(req:Request, res:Response) => {
         try{
 
-            const section1Products = await Product.find({showInHomeSection: 'section-1'}).limit(12);
-            const section2Products = await Product.find({showInHomeSection: 'section-2'}).limit(20);
-            const section3Products = await Product.find({showInHomeSection: 'section-3'}).limit(12);
+            const section1Products = await Product.find({showInHomeSection: 'section-1'}).sort({'createdAt': -1}).limit(12);
+            const section2Products = await Product.find({showInHomeSection: 'section-2'}).sort({'createdAt': -1}).limit(20);
+            const section3Products = await Product.find({showInHomeSection: 'section-3'}).sort({'createdAt': -1}).limit(12);
 
             return res.status(200).json({
                 status: 'success',
@@ -380,6 +395,119 @@ export class ProductController {
                     "section1": section1Products,
                     "section2": section2Products,
                     "section3": section3Products
+                }
+            })
+
+        }catch(err:any){
+            return res.status(404).json({
+                status: 'fail',
+                message: err.message
+            })
+        }
+    }
+
+    public dailySaleProducts = async(req:Request, res:Response) => {
+        try{
+
+            const features = new APIFeatures(Product.find({ priceDiscount: { $ne: 0 } }
+                ), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const products = await features.query
+
+            const productFeatures = new APIFeatures(Product.find({ priceDiscount: { $ne: 0 } }
+                ), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            
+            const totalProducts = await productFeatures.query;
+            const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
+            
+            return res.status(200).json({
+                status: 'success',
+                totalPages: Math.ceil(totalPages),
+                results: products.length,
+                data: {
+                    products
+                }
+            })
+
+        }catch(err:any){
+            return res.status(404).json({
+                status: 'fail',
+                message: err.message
+            })
+        }
+    }
+
+    public searchProducts = async(req:Request, res:Response) => {
+
+        try{
+
+            const textSearch = this.replaceAccents(req.body.textSearch.toLowerCase())
+            const splittedText = textSearch.split(' ')
+            const categories = req.body.categories
+
+            const data = {
+                tags: { $in: splittedText },
+                categories: categories ? {$in: categories} : {$ne: []}
+            }
+
+            const features = new APIFeatures(Product.find(
+                data
+            ), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const products = await features.query
+
+            const totalProducts = await Product.find({ priceDiscount: { $ne: 0 }});
+            const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
+
+            return res.status(200).json({
+                status: 'success',
+                totalPages: Math.ceil(totalPages),
+                results: products.length,
+                data: {
+                    products
+                }
+            })
+
+        }catch(err:any){
+
+            console.log(err)
+
+            return res.status(404).json({
+                status: 'fail',
+                message: 'PRODUCT_NOT_FOUND'
+            })
+        }
+
+    }
+
+    public productsByCategory = async(req:Request, res:Response) => {
+        try{
+
+            const features = new APIFeatures(Product.find({ categories: { $in: [req.params.categoryId] } }), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const products = await features.query
+
+            const totalProducts = await Product.find({ categories: { $in: [req.params.categoryId] } });
+            const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
+            
+            return res.status(200).json({
+                status: 'success',
+                totalPages: Math.ceil(totalPages),
+                results: products.length,
+                data: {
+                    products
                 }
             })
 

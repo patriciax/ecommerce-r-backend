@@ -1,9 +1,9 @@
 import { Schema, model } from "mongoose";
 
-const cartSchema = new Schema({
-    user: {
+const invoiceProductSchema = new Schema({
+    invoice: {
         type: Schema.Types.ObjectId,
-        ref: "User"
+        ref: "Invoice"
     },    
     product: {
         type: Schema.Types.ObjectId,
@@ -23,4 +23,9 @@ const cartSchema = new Schema({
     }        
 })
 
-export const Cart = model('Cart', cartSchema);
+invoiceProductSchema.pre(/^find/, function(this: any, next){
+    this.populate('product').populate('size').populate('color');
+    next();
+})
+
+export const InvoiceProduct = model('InvoiceProduct', invoiceProductSchema);

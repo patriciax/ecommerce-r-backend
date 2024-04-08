@@ -19,12 +19,16 @@ const paymentSchema = new Schema({
     },
     type:{
         type:String,
-        enum:['card','paypal','appelpay', 'zelle', 'mercantil', 'banesco'],
+        enum:['card','paypal','appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard'],
     },
     status:{
         type:String,
         enum:['pending','approved','rejected'],
-    }      
+    },
+    created:{
+        type: Date,
+        default: Date.now
+    }   
 
 })
 

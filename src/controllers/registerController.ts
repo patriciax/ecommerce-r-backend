@@ -64,7 +64,6 @@ export class RegisterController{
                 })
             }
             
-
             return res.status(201).json({
                 'status': 'success',
                 'message': 'EMAIL_VERIFICATION_SENT',
