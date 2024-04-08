@@ -22,7 +22,7 @@ const ProductSchema = new Schema({
     },  
     showInHomeSection:{
         type: String,
-        enum: ['section-1', 'section-2', 'section-3'],
+        enum: ['', 'section-1', 'section-2', 'section-3'],
     },
     price: {
         type: Number,

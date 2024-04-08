@@ -24,6 +24,8 @@ export class CartController {
 
         const stock = product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)?.stock ?? 0
 
+        console.log(product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id))
+
         if(product && req.body.quantity > stock) errors.push('QUANTITY_EXCEEDS_STOCK')
 
         return errors

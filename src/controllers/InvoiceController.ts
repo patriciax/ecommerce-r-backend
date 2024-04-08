@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Invoice } from "../models/invoice.schema";
 import { APIFeatures } from "../utils/apiFeatures";
+import { EmailController } from "./emailController";
 
 export class InvoiceController {
 
@@ -39,6 +40,19 @@ export class InvoiceController {
 
             const invoice = await Invoice.findByIdAndUpdate(req.params.invoice, {
                 shippingTracking: req.body.shippingTracking,
+            })
+
+            if(!invoice){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: "NOT_FOUND"
+                })
+            }
+
+            const emailController = new EmailController()
+            emailController.sendEmail("shipTracking", invoice?.email ?? '', "Tracking de envío", {
+                "invoiceNumber": invoice.transactionOrder,
+                "tracking": invoice.shippingTracking
             })
 
             return res.status(200).json({

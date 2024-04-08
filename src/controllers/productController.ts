@@ -347,14 +347,12 @@ export class ProductController {
     }
 
     public getProduct = async(req:Request, res:Response) => {
+
+        let product = null
         try{
-            let product = null
-            product = await Product.findOne({id: req.params.id}).populate('productVariations.size')
+            
+            product = await Product.findOne({_id: req.params.id}).populate('productVariations.size')
             .populate('productVariations.color');
-
-            if(!product) product = await Product.findOne({slug: req.params.id}).populate('productVariations.size').populate('productVariations.color');
-
-            if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
 
             return res.status(200).json({
                 status: 'success',
@@ -362,10 +360,25 @@ export class ProductController {
             })
 
         }catch(err){
-            return res.status(404).json({
-                status: 'fail',
-                message: 'No product found with that ID'
-            })
+
+            try{
+
+                if(!product) product = await Product.findOne({slug: req.params.id}).populate('productVariations.size').populate('productVariations.color');
+
+                if (!product) return res.status(404).json({ status: 'fail', message: 'No product found with that ID' });
+
+                return res.status(200).json({
+                    status: 'success',
+                    data: product
+                })
+
+            }catch(error){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: 'No product found with that ID'
+                })       
+            }
+
         }
     }
 

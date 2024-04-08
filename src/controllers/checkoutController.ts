@@ -51,7 +51,7 @@ export class CheckoutController {
 
                 const creditCardRocaController = new CreditCardRocaController()
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
-                
+
                 const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response)
 
                 if(response?.status == 'success'){
@@ -76,6 +76,7 @@ export class CheckoutController {
                 })
 
             }catch(error){
+                console.log(error)
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'

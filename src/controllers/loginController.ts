@@ -17,18 +17,18 @@ export class LoginController {
                 })
             }
 
-            if(!user.emailVerifiedAt){
-                return res.status(404).json({
-                    status: 'fail',
-                    message: 'EMAIL_NOT_VERIFIED'
-                })
-            }
-
             const isPasswordValid = await user.verifyUserPassword(req.body.password)
             if(!isPasswordValid){
                 return res.status(404).json({
                     status: 'fail',
                     message: 'USER_NOT_FOUND'
+                })
+            }
+
+            if(!user.emailVerifiedAt){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: 'EMAIL_NOT_VERIFIED'
                 })
             }
 

@@ -33,6 +33,4 @@ router.get('/category/:categoryId', productController.productsByCategory)
 router.get('/', productController.products)
 router.get('/:id', productController.getProduct)
 
-
-
 export default router;

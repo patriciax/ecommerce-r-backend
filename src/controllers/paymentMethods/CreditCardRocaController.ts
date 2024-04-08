@@ -36,7 +36,6 @@ export class CreditCardRocaController {
                     const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, req.body.card.total)
 
                     const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response)
-
                     if(response.success){
 
                         this.createCreditCardRoca(req, res)
@@ -88,7 +87,7 @@ export class CreditCardRocaController {
             }
 
             const giftCard = await GiftCard.findOne({amount: request.body.card.total})
-            console.log(giftCard)
+
             if(!giftCard){
                 return {
                     status: 'fail',
@@ -215,7 +214,7 @@ export class CreditCardRocaController {
         try{
 
             const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
-
+       
             const creditCardRoca = await CreditCardRoca.find({ email: data.email })
             if(!creditCardRoca){
                 return {
@@ -255,14 +254,17 @@ export class CreditCardRocaController {
                 }
             }
 
-            await CreditCardRoca.findByIdAndUpdate(cardId, {credits: credits - total})
-
+            const creditsToUpdate = credits - total
+            const findCard = await CreditCardRoca.findByIdAndUpdate(cardId, {credit: creditsToUpdate}, { overwriteDiscriminatorKey: true, new: true })
+ 
+            
             return {
                 status: 'success',
                 message: 'PAYMENT_SUCCESS',
             }
 
         }catch(error){
+            
             return {
                 status: 'fail',
                 message: 'CREDIT_CARD_NOT_FOUND'
