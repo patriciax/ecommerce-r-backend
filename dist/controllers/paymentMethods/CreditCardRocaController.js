@@ -192,6 +192,7 @@ class CreditCardRocaController {
             try {
                 const total = cart.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0);
                 const creditCardRoca = yield creditCardRoca_schema_1.CreditCardRoca.find({ email: data.email });
+                console.log("creditCardFound", creditCardRoca);
                 if (!creditCardRoca) {
                     return {
                         status: 'fail',
@@ -211,6 +212,7 @@ class CreditCardRocaController {
                         break;
                     }
                 }
+                console.log("creditCardData", !cardNumber, !cardPin, !credits);
                 if (!cardNumber || !cardPin || !credits) {
                     return {
                         status: 'fail',
@@ -231,6 +233,7 @@ class CreditCardRocaController {
                 };
             }
             catch (error) {
+                console.log("error", error);
                 return {
                     status: 'fail',
                     message: 'CREDIT_CARD_NOT_FOUND'

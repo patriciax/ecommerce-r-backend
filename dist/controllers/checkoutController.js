@@ -45,7 +45,6 @@ class CheckoutController {
                     const creditCardRocaController = new CreditCardRocaController_1.CreditCardRocaController();
                     const response = yield creditCardRocaController.makePayment(req.body, req.body.carts);
                     const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, response);
-                    console.log("payment", payment);
                     if ((response === null || response === void 0 ? void 0 : response.status) == 'success') {
                         const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                         this.clearCarts(req);
