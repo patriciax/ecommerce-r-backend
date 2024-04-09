@@ -216,6 +216,7 @@ export class CreditCardRocaController {
             const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
        
             const creditCardRoca = await CreditCardRoca.find({ email: data.email })
+            console.log("creditCardFound", creditCardRoca)
             if(!creditCardRoca){
                 return {
                     status: 'fail',
@@ -239,7 +240,7 @@ export class CreditCardRocaController {
                     break;
                 }
             }
-
+            
             if(!cardNumber || !cardPin || !credits){
                 return {
                     status: 'fail',
@@ -264,7 +265,7 @@ export class CreditCardRocaController {
             }
 
         }catch(error){
-            
+            console.log("error", error)           
             return {
                 status: 'fail',
                 message: 'CREDIT_CARD_NOT_FOUND'

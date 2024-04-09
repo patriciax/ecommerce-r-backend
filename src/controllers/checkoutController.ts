@@ -53,7 +53,6 @@ export class CheckoutController {
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
 
                 const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response)
-
                 if(response?.status == 'success'){
 
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
