@@ -7,7 +7,7 @@ export class DolarPriceController{
 
     public updateDolarPrice = async() => {
 
-        const response = await axios.get('https://pydolarvenezuela-api.vercel.app/api/v1/dollar/')
+        const response = await axios.get('https://pydolarvenezuela-api.vercel.app/api/v1/dollar')
 
         if(response.data){
             const price = response.data?.monitors?.bcv?.price

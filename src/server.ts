@@ -17,6 +17,7 @@ import bannerRoutes from './routes/banners.route'
 import zoomRoutes from './routes/zoom.route'
 import invoicesRoutes from './routes/invoices.route'
 import dolarPriceRoutes from './routes/dolarPrice.route'
+import countryRoute from './routes/country.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -62,6 +63,7 @@ app.use("/api/v1/checkout", checkoutRoutes)
 app.use("/api/v1/zoom", zoomRoutes)
 app.use("/api/v1/invoices", invoicesRoutes)
 app.use("/api/v1/dolar-price", dolarPriceRoutes)
+app.use("/api/v1/countries", countryRoute)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
@@ -74,9 +76,9 @@ app.listen(5000, () => {
     console.log('Server is running on port 5000')
 })
 
-// const newsLetterJob = new NewsletterJob()
-// const dolaPriceJob = new DolarPriceJob()
+const newsLetterJob = new NewsletterJob()
+const dolaPriceJob = new DolarPriceJob()
 
-// newsLetterJob.sendNewsletter()
-// dolaPriceJob.updateDolarPrice()
+newsLetterJob.sendNewsletter()
+dolaPriceJob.updateDolarPrice()
 
