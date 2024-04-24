@@ -7,6 +7,9 @@ import { EmailController } from "../emailController"
 import { User } from "../../models/user.schema"
 import { BanescoController } from "./BanescoController"
 import { CheckoutController } from "../checkoutController"
+import { PaypalController } from "./PaypalController"
+import { ZelleController } from "./ZelleController"
+import { PagoMovilController } from "./pagoMovilController"
 
 // declare global {
 //     namespace Express {
@@ -27,18 +30,19 @@ export class CreditCardRocaController {
 
     public purchaseCreditCardRoca = async (req: Request, res: Response) => {
         try{
+
             const checkoutController = new CheckoutController()
+            const tracnsactionOrder = await checkoutController.generateInvoiceOrder()
             if(req.body.paymentMethod === 'banesco'){
                 try{
 
-                    const tracnsactionOrder = await checkoutController.generateInvoiceOrder()
                     const banescoProcess = new BanescoController()
                     const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, req.body.card.total)
 
                     const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response)
                     if(response.success){
-
-                        this.createCreditCardRoca(req, res)
+                        const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+                        this.createCreditCardRoca(req, res, invoice, 'active')
 
                         return res.status(200).json({
                             status: 'success',
@@ -65,8 +69,114 @@ export class CreditCardRocaController {
                 }
             }
 
+            else if(req.body.paymentMethod === 'paypal-create-order'){
+                const paypalProcess = new PaypalController()
+                const order = await paypalProcess.createOrderCard(req.body.card.total)
+                return res.status(200).json({
+                    order,
+                    "transactionOrder": tracnsactionOrder
+                })
+            }
+    
+            else if(req.body.paymentMethod === 'paypal-approve-order'){
+                try{
+    
+                    const paypalProcess = new PaypalController()
+                    const response = await paypalProcess.captureOrder(req.body.orderId)
+
+                    if(response.status == 'COMPLETED'){
+    
+                        const payment = await checkoutController.generatePayment(req, 'paypal', tracnsactionOrder, response)
+                        const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+                        
+                        this.createCreditCardRoca(req, res, invoice, 'active')
+
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                tracnsactionOrder,
+                                card: req.body.card
+                            }
+                        })
+                    }
+    
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    })
+    
+                }catch(error:any){
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    })
+                }
+            }
+
+            else if(req.body.paymentMethod === 'pagoMovil'){
+                try{
+    
+                    const pagoMovilProcess = new PagoMovilController()
+                    const response = await pagoMovilProcess.makePayment(req.body.pagoMovilData, req.body.carts)
+    
+                    const payment = await checkoutController.generatePayment(req, 'pagoMovil', tracnsactionOrder, response, 'giftCard')
+                    const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+                    
+                    this.createCreditCardRoca(req, res, invoice, 'inactive')
+
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            tracnsactionOrder,
+                            card: req.body.card
+                        }
+                    })
+                    
+    
+                }catch(error){
+                    console.log(error)
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    })
+                }
+    
+            }
+    
+            else if(req.body.paymentMethod === 'zelle'){
+                try{
+    
+                    const zelleProcess = new ZelleController()
+                    const response = await zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts)
+    
+                    const payment = await checkoutController.generatePayment(req, 'zelle', tracnsactionOrder, response, 'giftCard')
+                    const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+
+                    this.createCreditCardRoca(req, res, invoice, 'inactive')
+    
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            tracnsactionOrder,
+                            card: req.body.card
+                        }
+                    })
+                    
+    
+                }catch(error){
+        
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    })
+                }
+    
+            }
+
         }catch(error){
-            console.log(error) 
             res.status(400).json({
                 status: 'fail',
                 message: 'SOMETHING_WENT_WRONG'
@@ -74,7 +184,7 @@ export class CreditCardRocaController {
         }
     }
 
-    public createCreditCardRoca = async (request: Request, response: Response) => {
+    public createCreditCardRoca = async (request: Request, response: Response, invoice:any, status:string = 'active') => {
         try{
 
             const errors = this.validateForm(request)
@@ -107,16 +217,20 @@ export class CreditCardRocaController {
             await CreditCardRoca.create({
                 cardNumber: creditCardNumber,
                 cardPin: cardPin,
+                invoice: invoice._id,
+                status: status,
                 credit: giftCard.amount,
                 email: request.body.card.emailTo,
                 fromUser: request?.user?._id,
             })
             
-            const emailController = new EmailController()
-            emailController.sendEmail("giftCard", request.body.card.emailTo, "Gift card recibida", {
-                cardNumber: creditCardNumber,
-                cardPin: cardPin,
-            })
+            if(status == 'active'){
+                const emailController = new EmailController()
+                emailController.sendEmail("giftCard", request.body.card.emailTo, "Gift card recibida", {
+                    cardNumber: creditCardNumber,
+                    cardPin: cardPin,
+                })
+            }
 
             return {
                 status: 'success',
@@ -124,6 +238,7 @@ export class CreditCardRocaController {
             }
 
         }catch(error){
+            console.log(error)
             return {
                 status: 'fail',
                 message: 'SOMETHING_WENT_WRONG'
@@ -216,7 +331,6 @@ export class CreditCardRocaController {
             const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
        
             const creditCardRoca = await CreditCardRoca.find({ email: data.email })
-            console.log("creditCardFound", creditCardRoca)
             if(!creditCardRoca){
                 return {
                     status: 'fail',

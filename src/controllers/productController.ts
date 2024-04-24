@@ -453,7 +453,7 @@ export class ProductController {
 
             const data = {
                 tags: { $in: splittedText },
-                categories: categories ? {$in: categories} : {$ne: []}
+                categories: categories?.length > 0 ? { $in: categories } : { $exists: true }
             }
 
             const features = new APIFeatures(Product.find(
@@ -465,7 +465,7 @@ export class ProductController {
             .paginate()
             const products = await features.query
 
-            const totalProducts = await Product.find({ priceDiscount: { $ne: 0 }});
+            const totalProducts = await Product.find(data);
             const totalPages = totalProducts.length / Number(req?.query?.limit || 1);
 
             return res.status(200).json({

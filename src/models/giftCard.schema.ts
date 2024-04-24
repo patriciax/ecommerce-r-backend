@@ -1,3 +1,4 @@
+import { string } from '@hapi/joi'
 import {Query, Schema, model} from 'mongoose'
 
 const GiftCardSchema = new Schema({

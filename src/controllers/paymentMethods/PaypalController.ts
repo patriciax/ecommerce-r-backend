@@ -71,7 +71,34 @@ export class PaypalController {
           method: "POST",
           body: JSON.stringify(payload),
         });*/
-        console.log(response.data)
+        
+        return response.data
+    };
+
+    public createOrderCard = async (cardPrice:any) => {
+        
+      const total = cardPrice
+        
+        const accessToken = await this.generateAccessToken();
+        const url = `${this.baseUrl()}/v2/checkout/orders`;
+        const payload = {
+          intent: "CAPTURE",
+          purchase_units: [
+            {
+              amount: {
+                currency_code: "USD",
+                value: total,
+              },
+            },
+          ],
+        };
+
+        const response = await axios.post(url, payload, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`
+            }
+        })
         
         return response.data
     };
@@ -106,7 +133,7 @@ export class PaypalController {
 
         }catch(error){
 
-            //console.log(error)
+            console.log(error)
 
         }
       };

@@ -6,6 +6,7 @@ const router = Router();
 const invoiceController = new InvoiceController();
 
 router.get('/', authMiddleware, restrictsTo(['INVOICE-LIST']), invoiceController.listInvoices)
+router.patch('/status/:invoice', invoiceController.updateInvoiceStatus)
 router.patch('/:invoice', authMiddleware, restrictsTo(['INVOICE-UPDATE']), invoiceController.updateInvoice)
 
 export default router;
