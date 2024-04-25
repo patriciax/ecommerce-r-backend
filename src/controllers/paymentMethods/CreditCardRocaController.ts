@@ -10,6 +10,11 @@ import { CheckoutController } from "../checkoutController"
 import { PaypalController } from "./PaypalController"
 import { ZelleController } from "./ZelleController"
 import { PagoMovilController } from "./pagoMovilController"
+import { DolarPrice } from "../../models/dolarPrice.schema"
+import { Invoice } from "../../models/invoice.schema"
+import { Payment } from "../../models/payments.schema"
+import { InvoiceProduct } from "../../models/invoiceProduct.schema"
+import { Product } from "../../models/product.schema"
 
 // declare global {
 //     namespace Express {
@@ -37,7 +42,11 @@ export class CreditCardRocaController {
                 try{
 
                     const banescoProcess = new BanescoController()
-                    const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, req.body.card.total)
+
+                    const dolarPrice:any = await DolarPrice.findOne({}).sort({createdAt: -1})
+                    const total = req.body.card.total * dolarPrice.price
+
+                    const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, total)
 
                     const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response)
                     if(response.success){
@@ -121,7 +130,7 @@ export class CreditCardRocaController {
                     const response = await pagoMovilProcess.makePayment(req.body.pagoMovilData, req.body.carts)
     
                     const payment = await checkoutController.generatePayment(req, 'pagoMovil', tracnsactionOrder, response, 'giftCard')
-                    const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+                    const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard')
                     
                     this.createCreditCardRoca(req, res, invoice, 'inactive')
 
@@ -206,11 +215,7 @@ export class CreditCardRocaController {
             }
 
             let creditCardNumber = null
-            let exists = true;
-            while(exists){
-                creditCardNumber = randomNumbersGenerator(16)
-                exists = await CreditCardRoca.findOne({ cardNumber: creditCardNumber }) || false;
-            }
+            creditCardNumber = randomNumbersGenerator(16)
 
             const cardPin = randomNumbersGenerator(4)
 
@@ -385,6 +390,83 @@ export class CreditCardRocaController {
                 message: 'CREDIT_CARD_NOT_FOUND'
             }
         }
+    }
+
+    public updateGiftCardStatus = async(req:Request, res:Response) => {
+        
+        try{
+
+            const emailController = new EmailController()
+            const invoice = await Invoice.findById(req.params.invoice)
+             
+            if(!invoice){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: "NOT_FOUND"
+                })
+            }
+
+            const payment = await Payment.findById(invoice.payment)
+
+            if(!payment){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: "NOT_FOUND"
+                })
+            }
+
+            if (req.body.status === "pending" || req.body.status === "approved" || req.body.status === "rejected") {
+                payment.status = req.body.status;
+            } else {
+                payment.status = 'pending';
+            }
+
+            await payment.save()
+
+            if(payment.status == 'approved'){
+
+                const creditCardNumber = randomNumbersGenerator(16)
+                const cardPin = randomNumbersGenerator(4)
+
+                const creditCardCopy = await CreditCardRoca.findOneAndUpdate({invoice: invoice._id});
+
+                const creditCardObject = await CreditCardRoca.create({invoice: invoice._id, cardNumber: creditCardNumber, cardPin: cardPin, status: 'active', credit: creditCardCopy?.credit, email: creditCardCopy?.email, fromUser: creditCardCopy?.fromUser  })
+
+                await CreditCardRoca.findByIdAndDelete(creditCardCopy?._id)
+
+                if(!creditCardObject){
+                    return res.status(404).json({
+                        status: 'fail',
+                        message: "NOT_FOUND"
+                    })
+                }
+
+                emailController.sendEmail("giftCard", creditCardObject?.email, "Gift card recibida", {
+                    cardNumber: creditCardNumber,
+                    cardPin: cardPin,
+                })
+            }
+
+            else if(payment.status == 'rejected'){
+
+                emailController.sendEmail("rejectedPayment", invoice?.email ?? '', "Pago rechazado", {
+                    "reference": invoice.pagoMovilReference
+                })
+
+            }
+
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    payment
+                }
+            })
+
+        }catch(error){
+            
+            return error
+        }
+
     }
 
 }

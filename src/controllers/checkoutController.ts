@@ -326,8 +326,14 @@ export class CheckoutController {
         if(payment == 'zelle')
             zelleData = await Zelle.find({})
         
+        let total = 0
         const dolarPrice:any = await DolarPrice.findOne({}).sort({createdAt: -1})
-        const total = req.body.carts?.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0) ?? 0
+
+        if(purchaseType == 'invoice')
+            total = req.body.carts?.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0) ?? 0
+
+        else if(purchaseType == 'giftCard')
+            total = req.body.card.total
         
         const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * dolarPrice?.price : total
 
@@ -339,7 +345,7 @@ export class CheckoutController {
             transactionId: order,
             type: payment,
             status: payment == 'pagoMovil' || payment == 'zelle' ? 'pending' : response.status == 'COMPLETED' ? 'approved' : 'rejected',
-            total: purchaseType == 'invoice' ? finalTotal : req.body?.card?.total,
+            total: finalTotal,
             bank: payment == 'pagoMovil' ? pagoMovilData[0]?.bank : undefined,
             zelleEmail: payment == 'zelle' ? zelleData[0]?.email : undefined,
             purchaseType

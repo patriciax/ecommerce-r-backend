@@ -101,6 +101,7 @@ export class InvoiceController {
 
             if(payment.status == 'rejected'){
                 const invoiceProducts = await InvoiceProduct.find({invoice: invoice._id})
+                
                 invoiceProducts.forEach(async (invoiceProduct) => {
                     
                     const product = await Product.findById(invoiceProduct.product)
@@ -137,6 +138,33 @@ export class InvoiceController {
         }catch(error){
             
             return error
+        }
+
+    }
+
+    public userInvoices = async (req: Request, res: Response) => {
+
+        try{
+
+            const features = new APIFeatures(Invoice.find({user: req.user._id, purchaseType: 'invoice'}).populate("payment").populate("invoiceProduct"), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const invoices = await features.query
+
+            return res.status(200).json({
+                status: 'success',
+                results: invoices.length,
+                data: {
+                    invoices
+                }
+            })
+
+        }catch(error){
+            return res.status(400).json({
+                status: 'error'
+            })
         }
 
     }
