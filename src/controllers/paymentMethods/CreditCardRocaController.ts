@@ -48,10 +48,10 @@ export class CreditCardRocaController {
 
                     const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, total)
 
-                    const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response)
+                    const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected", 'giftCard')
                     if(response.success){
-                        const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
-                        this.createCreditCardRoca(req, res, invoice, 'active')
+                        const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard')
+                        await this.createCreditCardRoca(req, res, invoice, 'active')
 
                         return res.status(200).json({
                             status: 'success',
@@ -70,7 +70,6 @@ export class CreditCardRocaController {
                     })
 
                 }catch(error){
-                    console.log(error)
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'
@@ -95,8 +94,8 @@ export class CreditCardRocaController {
 
                     if(response.status == 'COMPLETED'){
     
-                        const payment = await checkoutController.generatePayment(req, 'paypal', tracnsactionOrder, response)
-                        const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+                        const payment = await checkoutController.generatePayment(req, 'paypal', tracnsactionOrder, response?.status == 'COMPLETED' ? "approved" : "rejected", 'giftCard')
+                        const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard')
                         
                         this.createCreditCardRoca(req, res, invoice, 'active')
 
@@ -132,7 +131,7 @@ export class CreditCardRocaController {
                     const payment = await checkoutController.generatePayment(req, 'pagoMovil', tracnsactionOrder, response, 'giftCard')
                     const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard')
                     
-                    this.createCreditCardRoca(req, res, invoice, 'inactive')
+                    await this.createCreditCardRoca(req, res, invoice, 'inactive')
 
                     return res.status(200).json({
                         status: 'success',
@@ -161,9 +160,9 @@ export class CreditCardRocaController {
                     const response = await zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts)
     
                     const payment = await checkoutController.generatePayment(req, 'zelle', tracnsactionOrder, response, 'giftCard')
-                    const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, response, 'giftCard')
+                    const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard')
 
-                    this.createCreditCardRoca(req, res, invoice, 'inactive')
+                    await this.createCreditCardRoca(req, res, invoice, 'inactive')
     
                     return res.status(200).json({
                         status: 'success',
@@ -227,6 +226,7 @@ export class CreditCardRocaController {
                 credit: giftCard.amount,
                 email: request.body.card.emailTo,
                 fromUser: request?.user?._id,
+                message: request.body.card.message
             })
             
             if(status == 'active'){
@@ -234,6 +234,7 @@ export class CreditCardRocaController {
                 emailController.sendEmail("giftCard", request.body.card.emailTo, "Gift card recibida", {
                     cardNumber: creditCardNumber,
                     cardPin: cardPin,
+                    message: request.body.card.message
                 })
             }
 
@@ -428,9 +429,9 @@ export class CreditCardRocaController {
                 const creditCardNumber = randomNumbersGenerator(16)
                 const cardPin = randomNumbersGenerator(4)
 
-                const creditCardCopy = await CreditCardRoca.findOneAndUpdate({invoice: invoice._id});
+                 const creditCardCopy = await CreditCardRoca.findOne({invoice: req.params.invoice});
 
-                const creditCardObject = await CreditCardRoca.create({invoice: invoice._id, cardNumber: creditCardNumber, cardPin: cardPin, status: 'active', credit: creditCardCopy?.credit, email: creditCardCopy?.email, fromUser: creditCardCopy?.fromUser  })
+                const creditCardObject = await CreditCardRoca.create({invoice: invoice._id, cardNumber: creditCardNumber, cardPin: cardPin, status: 'active', credit: creditCardCopy?.credit, email: creditCardCopy?.email, fromUser: creditCardCopy?.fromUser, message: creditCardCopy?.message  })
 
                 await CreditCardRoca.findByIdAndDelete(creditCardCopy?._id)
 
@@ -444,6 +445,7 @@ export class CreditCardRocaController {
                 emailController.sendEmail("giftCard", creditCardObject?.email, "Gift card recibida", {
                     cardNumber: creditCardNumber,
                     cardPin: cardPin,
+                    message: creditCardObject?.message
                 })
             }
 

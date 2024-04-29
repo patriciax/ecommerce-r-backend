@@ -36,6 +36,9 @@ const CreditCardRocaSchema = new Schema({
         type: String,
         required: true
     },
+    message: {
+        type: String
+    },
     credit: {
         type: Number,
         required: true

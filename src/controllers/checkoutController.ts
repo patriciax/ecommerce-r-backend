@@ -57,7 +57,7 @@ export class CheckoutController {
                 const creditCardRocaController = new CreditCardRocaController()
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
 
-                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response)
+                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected")
                 if(response?.status == 'success'){
 
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
@@ -103,7 +103,7 @@ export class CheckoutController {
                 const paypalProcess = new PaypalController()
                 const response = await paypalProcess.captureOrder(req.body.orderId)
 
-                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response)
+                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected")
 
                 if(response.status == 'COMPLETED'){
 
@@ -139,8 +139,7 @@ export class CheckoutController {
 
                 const banescoProcess = new BanescoController()
                 const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts)
-
-                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response)
+                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected")
                 
                 if(response.success){
 
@@ -309,7 +308,7 @@ export class CheckoutController {
         }
     }
 
-    public generatePayment = async(req:Request, payment:string, order:string, response:any, purchaseType:string = 'invoice') => {
+    public generatePayment = async(req:Request, payment:string, order:string, paymentStatus:any, purchaseType:string = 'invoice') => {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -344,7 +343,7 @@ export class CheckoutController {
             phone: userPhone,
             transactionId: order,
             type: payment,
-            status: payment == 'pagoMovil' || payment == 'zelle' ? 'pending' : response.status == 'COMPLETED' ? 'approved' : 'rejected',
+            status: payment == 'pagoMovil' || payment == 'zelle' ? 'pending' : paymentStatus,
             total: finalTotal,
             bank: payment == 'pagoMovil' ? pagoMovilData[0]?.bank : undefined,
             zelleEmail: payment == 'zelle' ? zelleData[0]?.email : undefined,
