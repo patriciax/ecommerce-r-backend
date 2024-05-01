@@ -1,19 +1,24 @@
 import axios from "axios"
 import { DolarPrice } from "../../models/dolarPrice.schema"
+import { taxCalculations } from "../../utils/taxCalculation"
+import { decimalNumberFormat } from "../../utils/numberFormat"
 
 export class BanescoController {
 
-    public makePayment = async(data:any, cart:any) => {
+    public makePayment = async(data:any, cart:any, ivaType:string) => {
         
         try{
 
             const dolarPrice:any = await DolarPrice.findOne({}).sort({createdAt: -1})
             const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0) * dolarPrice?.price ?? 1
 
+            const totalWithTax = taxCalculations(total, ivaType)
+            const formatedTotal = decimalNumberFormat(totalWithTax)
+
             const response = await axios.post(`${process.env.BANESCO_API_URL}/payment`, {
                 "KeyId": process.env.BANESCO_PRIVATE_KEY,
                 "PublicKeyId": process.env.BANESCO_PUBLIC_KEY,
-                "Amount": `${total}`,
+                "Amount": `${formatedTotal}`,
                 "Description": data.description,
                 "CardHolder": data.cardHolder,
                 "CardHolderId": data.cardHolderId,

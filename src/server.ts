@@ -45,6 +45,7 @@ declare global {
 //initCloudinary()
 
 const app = express();
+app.set('trust proxy', true)
 app.use(bodyParser.json({limit: '35mb'}));
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://ecommerce-dashboard.sytes.net', 'https://ecommerce.sytes.net'],

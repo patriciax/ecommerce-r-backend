@@ -90,7 +90,7 @@ export class CheckoutController {
 
         else if(req.body.paymentMethod === 'paypal-create-order'){
             const paypalProcess = new PaypalController()
-            const order = await paypalProcess.createOrder(req.body.carts)
+            const order = await paypalProcess.createOrder(req.body.carts, req.body.ivaType)
             return res.status(200).json({
                 order,
                 "transactionOrder": tracnsactionOrder
@@ -137,8 +137,11 @@ export class CheckoutController {
         else if(req.body.paymentMethod === 'banesco'){
             try{
 
+                const ip = req.ip.split(':').pop()
+                req.body.banescoData.ip = ip
+
                 const banescoProcess = new BanescoController()
-                const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts)
+                const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national')
                 const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected")
                 
                 if(response.success){

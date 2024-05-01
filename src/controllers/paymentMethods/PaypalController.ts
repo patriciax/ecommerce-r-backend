@@ -1,4 +1,6 @@
 import axios from "axios"
+import { taxCalculations } from "../../utils/taxCalculation";
+import { decimalNumberFormat } from "../../utils/numberFormat";
 
 export class PaypalController {
 
@@ -33,9 +35,12 @@ export class PaypalController {
            
     }
 
-    public createOrder = async (cart:any) => {
+    public createOrder = async (cart:any, ivaType:string) => {
         
       const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+
+      const totalWithTax = taxCalculations(total, ivaType)
+      const formatedTotal = decimalNumberFormat(totalWithTax)
         
         const accessToken = await this.generateAccessToken();
         const url = `${this.baseUrl()}/v2/checkout/orders`;
@@ -45,7 +50,7 @@ export class PaypalController {
             {
               amount: {
                 currency_code: "USD",
-                value: total,
+                value: parseFloat(formatedTotal),
               },
             },
           ],
