@@ -21,6 +21,7 @@ import countryRoute from './routes/country.route'
 import favoriteRoute from './routes/favorite.route'
 import pagoMovilRoute from './routes/pagomovil.route'
 import zelleRoute from './routes/zelle.route'
+import shipmentRoute from './routes/shipment.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -71,6 +72,7 @@ app.use("/api/v1/countries", countryRoute)
 app.use("/api/v1/favorites", favoriteRoute)
 app.use("/api/v1/pago-movil", pagoMovilRoute)
 app.use("/api/v1/zelle", zelleRoute)
+app.use("/api/v1/shipment", shipmentRoute)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
@@ -87,5 +89,5 @@ const newsLetterJob = new NewsletterJob()
 const dolaPriceJob = new DolarPriceJob()
 
 newsLetterJob.sendNewsletter()
-//dolaPriceJob.updateDolarPrice()
+dolaPriceJob.updateDolarPrice()
 
