@@ -22,6 +22,10 @@ export class ProductController {
         if(!req.body.categories) errors.push('Price es requerido')
         if(!req.body.mainImage) errors.push('Imágen principal es requerida')
         if(!req.body.productVariations) errors.push('Variaciones del producto es requerido')
+        if(!req.body.length) errors.push('Largo del producto es requerido') 
+        if(!req.body.width) errors.push('Ancho del producto es requerido')
+        if(!req.body.height) errors.push('Alto del producto es requerido')
+        if(!req.body.weight) errors.push('Peso del producto es requerido')     
 
         return errors
     }
@@ -37,6 +41,10 @@ export class ProductController {
         if(!req.body.price) errors.push('Price es requerido')
         if(!req.body.categories) errors.push('Price es requerido')
         if(!req.body.productVariations) errors.push('Variaciones del producto es requerido')
+        if(!req.body.length) errors.push('Largo del producto es requerido') 
+        if(!req.body.width) errors.push('Ancho del producto es requerido')
+        if(!req.body.height) errors.push('Alto del producto es requerido')
+        if(!req.body.weight) errors.push('Peso del producto es requerido')
 
         return errors
     }
@@ -155,7 +163,11 @@ export class ProductController {
                 showInHomeSection: req.body.showInHomeSection,
                 slug: slug,
                 productVariations: req.body.productVariations,
-                tags: tags
+                tags: tags,
+                length: req.body.length,
+                width: req.body.width,
+                height: req.body.height,
+                weight: req.body.weight
             })
 
             return res.status(201).json({
@@ -259,6 +271,10 @@ export class ProductController {
                 mainImage: req.body.mainImage ? `${process.env.CDN_ENDPOINT}/${mainImagePath}` : product.mainImage,
                 images: req.body.images.length > 0 ? images : product.images,
                 productVariations: req.body.productVariations,
+                length: req.body.length,
+                width: req.body.width,
+                height: req.body.height,
+                weight: req.body.weight
             }, {
                 new: true,
                 runValidators: true

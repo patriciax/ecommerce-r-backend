@@ -39,9 +39,9 @@ export class ShipmentController {
                 "length": "5",
                 "width": "5",
                 "height": "5",
-                "distanceUnit": "in",
+                "distanceUnit": "cm",
                 "weight": "2",
-                "massUnit": "lb"
+                "massUnit": "kg"
             };
    
             const response = await this.shippoClient.shipments.create({
