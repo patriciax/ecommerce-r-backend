@@ -88,4 +88,25 @@ export class ShipmentController {
 
     }
 
+    public createShipment = async(rateId:any) => {
+
+        try{
+            this.setAPI()
+            const response = await this.shippoClient.transactions.create({
+                "rate": rateId,
+                "label_file_type": "PDF",
+                "async": false
+            })
+
+            return response
+
+        }catch(err: any){
+            console.log(err)
+            return {
+                status: 'error'
+            }
+        }
+
+    }
+
 }

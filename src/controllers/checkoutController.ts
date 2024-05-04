@@ -16,6 +16,7 @@ import { DolarPrice } from "../models/dolarPrice.schema";
 import { PagoMovil } from "../models/pagoMovil.schema";
 import { ZelleController } from "./paymentMethods/ZelleController";
 import { Zelle } from "../models/zelle.schema";
+import { ShipmentController } from "./shipmentController";
 
 declare global {
     namespace Express {
@@ -39,6 +40,8 @@ export class CheckoutController {
     
     public paymentProcess = async (req: any, res: any) => {
         
+        const shipmentController = new ShipmentController()
+
         let tracnsactionOrder = ''
         if((req.body.paymentMethod !== 'paypal-approve-order')){
             const result = await this.validateCart(req.body.carts)
@@ -90,7 +93,7 @@ export class CheckoutController {
 
         else if(req.body.paymentMethod === 'paypal-create-order'){
             const paypalProcess = new PaypalController()
-            const order = await paypalProcess.createOrder(req.body.carts, req.body.ivaType)
+            const order = await paypalProcess.createOrder(req.body.carts, req.body.ivaType, req.body.carrierRate)
             return res.status(200).json({
                 order,
                 "transactionOrder": tracnsactionOrder
@@ -106,9 +109,14 @@ export class CheckoutController {
                 const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected")
 
                 if(response.status == 'COMPLETED'){
+                    let trackingNumber = ""
+                    if(req.body.carrierRate){
+                        const shippingResponse = await shipmentController.createShipment(req.body.carrierRate.objectId)
+                        trackingNumber = shippingResponse.trackingNumber
+                    }
 
-                    const invoice = await this.generateInvoice(req, req.body.orderId, payment)
-
+                    const invoice = await this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber)
+                    
                     this.clearCarts(req)
 
                     return res.status(200).json({
@@ -357,7 +365,7 @@ export class CheckoutController {
 
     }
 
-    public generateInvoice = async(req:Request, order:string, paymentModel:any, purchaseType:string = 'invoice') => {
+    public generateInvoice = async(req:Request, order:string, paymentModel:any, purchaseType:string = 'invoice', trackingNumber = '') => {
         
         let userName = ''
         let userEmail = ''
@@ -377,7 +385,8 @@ export class CheckoutController {
             carrier: req.body.carrier,
             purchaseType,
             pagoMovilReference: req.body.pagoMovilData?.reference ?? undefined,
-            pagoMovilDate: req.body.pagoMovilData?.date ?? undefined
+            pagoMovilDate: req.body.pagoMovilData?.date ?? undefined,
+            shippingTracking: trackingNumber ?? undefined
         })
 
         if(purchaseType == 'invoice'){
@@ -408,11 +417,11 @@ export class CheckoutController {
             const receiverEmail = req?.user?.email || userEmail
             const receiverName = req?.user?.name || userName
 
-            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts)
+            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber)
 
             const adminEmail = await AdminEmail.findOne()
             if(adminEmail){
-                this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true)
+                this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber)
             }
             
             this.subsctractStock(req.body.carts)
@@ -434,13 +443,13 @@ export class CheckoutController {
         }
     }
 
-    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false) => {
-
+    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false, trackingNumber:string = "") => {
         const emailController = new EmailController()
         emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
             "invoiceNumber": invoiceNumber,
             "user": name,
-            "carts": carts
+            "carts": carts,
+            "trackingNumber": trackingNumber
         })
     }
 

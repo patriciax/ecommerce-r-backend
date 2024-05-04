@@ -35,10 +35,12 @@ export class PaypalController {
            
     }
 
-    public createOrder = async (cart:any, ivaType:string) => {
+    public createOrder = async (cart:any, ivaType:string, carrierRate:any) => {
         
-      const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+      let total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+      total += carrierRate ? carrierRate?.amount * 1 : 0
 
+      
       const totalWithTax = taxCalculations(total, ivaType)
       const formatedTotal = decimalNumberFormat(totalWithTax)
         
