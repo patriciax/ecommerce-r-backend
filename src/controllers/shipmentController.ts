@@ -25,6 +25,15 @@ export class ShipmentController {
                 "zip": "94117",
                 "country": "US"
             };
+
+            // const addressTo = {
+            //     "name": "Mr Hippo",
+            //     "street1": "Broadway 1",
+            //     "city": "New York",
+            //     "state": "NY",
+            //     "zip": "10007",
+            //     "country": "US"
+            // };
             
             const addressTo = {
                 "name": req.body.name,
@@ -34,23 +43,38 @@ export class ShipmentController {
                 "zip": req.body.zip,
                 "country": req.body.country
             };
-            
-            const parcel = {
-                "length": "5",
-                "width": "5",
-                "height": "5",
-                "distanceUnit": "cm",
-                "weight": "2",
-                "massUnit": "kg"
-            };
+
+            const parcel:any = []
+
+            req.body.parcel.forEach((item:any) => {
+                
+                for(let i = 0; i < item.quantity; i++){
+                    parcel.push({
+                        "metadata":`${item.nameEnglish} - ${item.color.englishName} - ${item.size.englishName}`,
+                        "length": `${item.length}`,
+                        "width": `${item.width}`,
+                        "height": `${item.height}`,
+                        "distanceUnit": "cm",
+                        "weight": `${item.weight}`,
+                        "massUnit": "kg"
+                    })
+                }
+                
+            })
+
+            // console.log({
+            //     "addressFrom": addressFrom,
+            //     "addressTo": addressTo,
+            //     "parcels": parcel,
+            //     "carrierAccounts": [
+            //         process.env.CARRIER_ACCOUNT
+            //     ],
+            // })
    
             const response = await this.shippoClient.shipments.create({
                 "addressFrom": addressFrom,
                 "addressTo": addressTo,
-                "parcels": [parcel],
-                "carrierAccounts": [
-                    process.env.CARRIER_ACCOUNT
-                ],
+                "parcels": parcel
             })
 
             return res.status(200).json({
