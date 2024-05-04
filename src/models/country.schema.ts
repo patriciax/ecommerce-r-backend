@@ -4,7 +4,11 @@ const countrySchema = new Schema({
     name: {
         type: String,
     },
-    states: [String]  
+    value: {
+        type: String,
+    },
+    states: [String],
+    statesValues: [String]  
 })
 
 export const Country = model('Country', countrySchema);

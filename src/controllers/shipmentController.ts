@@ -27,12 +27,12 @@ export class ShipmentController {
             };
             
             const addressTo = {
-                "name": "Mr Hippo",
-                "street1": "Broadway 1",
-                "city": "New York",
-                "state": "NY",
-                "zip": "10007",
-                "country": "US"
+                "name": req.body.name,
+                "street1": req.body.street1,
+                "city": req.body.city,
+                "state": req.body.state,
+                "zip": req.body.zip,
+                "country": req.body.country
             };
             
             const parcel = {
