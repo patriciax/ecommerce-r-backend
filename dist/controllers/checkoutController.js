@@ -53,7 +53,12 @@ class CheckoutController {
                     const response = yield creditCardRocaController.makePayment(req.body, req.body.carts);
                     const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, (response === null || response === void 0 ? void 0 : response.status) == 'success' ? "approved" : "rejected");
                     if ((response === null || response === void 0 ? void 0 : response.status) == 'success') {
-                        const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
+                        let trackingNumber = '';
+                        if (req.body.carrierRate) {
+                            const shippingResponse = yield shipmentController.createShipment(req.body.carrierRate.objectId);
+                            trackingNumber = shippingResponse.trackingNumber;
+                        }
+                        const invoice = yield this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber);
                         this.clearCarts(req);
                         return res.status(200).json({
                             status: 'success',
