@@ -19,17 +19,22 @@ class DolarPriceController {
     constructor() {
         this.updateDolarPrice = () => __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c;
-            const response = yield axios_1.default.get('https://pydolarvenezuela-api.vercel.app/api/v1/dollar/');
-            if (response.data) {
-                const price = (_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.monitors) === null || _b === void 0 ? void 0 : _b.bcv) === null || _c === void 0 ? void 0 : _c.price;
-                const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne();
-                if (!dolarPrice) {
-                    yield dolarPrice_schema_1.DolarPrice.create({ price: price });
-                    return;
+            const response = yield axios_1.default.get('https://pydolarvenezuela-api.vercel.app/api/v1/dollar');
+            try {
+                if (response.data) {
+                    const price = (_c = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.monitors) === null || _b === void 0 ? void 0 : _b.bcv) === null || _c === void 0 ? void 0 : _c.price;
+                    const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne();
+                    if (!dolarPrice) {
+                        yield dolarPrice_schema_1.DolarPrice.create({ price: price });
+                        return;
+                    }
+                    dolarPrice.price = price;
+                    dolarPrice.updatedAt = new Date();
+                    dolarPrice.save();
                 }
-                dolarPrice.price = price;
-                dolarPrice.updatedAt = new Date();
-                dolarPrice.save();
+            }
+            catch (err) {
+                console.log(err);
             }
         });
         this.getDolarPrice = (req, res) => __awaiter(this, void 0, void 0, function* () {

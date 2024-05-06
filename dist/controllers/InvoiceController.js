@@ -13,12 +13,15 @@ exports.InvoiceController = void 0;
 const invoice_schema_1 = require("../models/invoice.schema");
 const apiFeatures_1 = require("../utils/apiFeatures");
 const emailController_1 = require("./emailController");
+const payments_schema_1 = require("../models/payments.schema");
+const invoiceProduct_schema_1 = require("../models/invoiceProduct.schema");
+const product_schema_1 = require("../models/product.schema");
 class InvoiceController {
     constructor() {
         this.listInvoices = (req, res) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
-                const features = new apiFeatures_1.APIFeatures(invoice_schema_1.Invoice.find().populate('user').populate("invoiceProduct"), req.query)
+                const features = new apiFeatures_1.APIFeatures(invoice_schema_1.Invoice.find().populate("payment").populate('user').populate("invoiceProduct"), req.query)
                     .filter()
                     .sort()
                     .limitFields()
@@ -64,6 +67,82 @@ class InvoiceController {
                 });
             }
             catch (error) {
+            }
+        });
+        this.updateInvoiceStatus = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _c;
+            try {
+                const invoice = yield invoice_schema_1.Invoice.findById(req.params.invoice);
+                if (!invoice) {
+                    return res.status(404).json({
+                        status: 'fail',
+                        message: "NOT_FOUND"
+                    });
+                }
+                const payment = yield payments_schema_1.Payment.findById(invoice.payment);
+                if (!payment) {
+                    return res.status(404).json({
+                        status: 'fail',
+                        message: "NOT_FOUND"
+                    });
+                }
+                if (req.body.status === "pending" || req.body.status === "approved" || req.body.status === "rejected") {
+                    payment.status = req.body.status;
+                }
+                else {
+                    payment.status = 'pending';
+                }
+                if (payment.status == 'rejected') {
+                    const invoiceProducts = yield invoiceProduct_schema_1.InvoiceProduct.find({ invoice: invoice._id });
+                    invoiceProducts.forEach((invoiceProduct) => __awaiter(this, void 0, void 0, function* () {
+                        const product = yield product_schema_1.Product.findById(invoiceProduct.product);
+                        if (product) {
+                            product.productVariations.forEach(variation => {
+                                var _a, _b;
+                                if (((_a = invoiceProduct.size) === null || _a === void 0 ? void 0 : _a._id.toString()) == variation.size[0].toString() && ((_b = invoiceProduct.color) === null || _b === void 0 ? void 0 : _b._id.toString()) == variation.color[0].toString()) {
+                                    variation.stock = variation.stock + invoiceProduct.quantity;
+                                }
+                            });
+                            yield (product === null || product === void 0 ? void 0 : product.save());
+                        }
+                    }));
+                    const emailController = new emailController_1.EmailController();
+                    emailController.sendEmail("rejectedPayment", (_c = invoice === null || invoice === void 0 ? void 0 : invoice.email) !== null && _c !== void 0 ? _c : '', "Pago rechazado", {
+                        "reference": invoice.pagoMovilReference
+                    });
+                }
+                yield payment.save();
+                return res.status(200).json({
+                    status: 'success',
+                    data: {
+                        payment
+                    }
+                });
+            }
+            catch (error) {
+                return error;
+            }
+        });
+        this.userInvoices = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                const features = new apiFeatures_1.APIFeatures(invoice_schema_1.Invoice.find({ user: req.user._id, purchaseType: 'invoice' }).populate("payment").populate("invoiceProduct"), req.query)
+                    .filter()
+                    .sort()
+                    .limitFields()
+                    .paginate();
+                const invoices = yield features.query;
+                return res.status(200).json({
+                    status: 'success',
+                    results: invoices.length,
+                    data: {
+                        invoices
+                    }
+                });
+            }
+            catch (error) {
+                return res.status(400).json({
+                    status: 'error'
+                });
             }
         });
     }

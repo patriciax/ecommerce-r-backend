@@ -21,7 +21,20 @@ const paymentSchema = new mongoose_1.Schema({
     },
     type: {
         type: String,
-        enum: ['card', 'paypal', 'appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard'],
+        enum: ['card', 'paypal', 'appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard', 'pagoMovil'],
+    },
+    total: {
+        type: Number
+    },
+    bank: {
+        type: String
+    },
+    purchaseType: {
+        type: String,
+        enum: ['invoice', 'giftCard'],
+    },
+    zelleEmail: {
+        type: String
     },
     status: {
         type: String,

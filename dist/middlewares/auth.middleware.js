@@ -52,7 +52,7 @@ const authMiddlewareLoginNoRequired = (req, res, next) => __awaiter(void 0, void
         splittedHeader = req.headers.authorization.split(' ');
     }
     try {
-        if (splittedHeader.length > 0) {
+        if (splittedHeader.length > 1) {
             const userInfo = (0, jsonwebtoken_1.verify)(splittedHeader[1], process.env.JWT_SECRET);
             const user = yield user_schema_1.User.findById(userInfo._id).populate('role');
             req.user = user;

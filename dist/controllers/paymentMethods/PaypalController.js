@@ -14,6 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaypalController = void 0;
 const axios_1 = __importDefault(require("axios"));
+const taxCalculation_1 = require("../../utils/taxCalculation");
+const numberFormat_1 = require("../../utils/numberFormat");
 class PaypalController {
     constructor() {
         this.baseUrl = () => process.env.PAYPAL_ENVIRONMENT === 'sandbox' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
@@ -39,8 +41,11 @@ class PaypalController {
             catch (error) {
             }
         });
-        this.createOrder = (cart) => __awaiter(this, void 0, void 0, function* () {
-            const total = cart.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0);
+        this.createOrder = (cart, ivaType, carrierRate) => __awaiter(this, void 0, void 0, function* () {
+            let total = cart.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0);
+            total += carrierRate ? (carrierRate === null || carrierRate === void 0 ? void 0 : carrierRate.amount) * 1 : 0;
+            const totalWithTax = (0, taxCalculation_1.taxCalculations)(total, ivaType);
+            const formatedTotal = (0, numberFormat_1.decimalNumberFormat)(totalWithTax);
             const accessToken = yield this.generateAccessToken();
             const url = `${this.baseUrl()}/v2/checkout/orders`;
             const payload = {
@@ -49,7 +54,7 @@ class PaypalController {
                     {
                         amount: {
                             currency_code: "USD",
-                            value: total,
+                            value: parseFloat(formatedTotal),
                         },
                     },
                 ],
@@ -73,7 +78,29 @@ class PaypalController {
               method: "POST",
               body: JSON.stringify(payload),
             });*/
-            console.log(response.data);
+            return response.data;
+        });
+        this.createOrderCard = (cardPrice) => __awaiter(this, void 0, void 0, function* () {
+            const total = cardPrice;
+            const accessToken = yield this.generateAccessToken();
+            const url = `${this.baseUrl()}/v2/checkout/orders`;
+            const payload = {
+                intent: "CAPTURE",
+                purchase_units: [
+                    {
+                        amount: {
+                            currency_code: "USD",
+                            value: total,
+                        },
+                    },
+                ],
+            };
+            const response = yield axios_1.default.post(url, payload, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
             return response.data;
         });
         this.captureOrder = (orderID) => __awaiter(this, void 0, void 0, function* () {
@@ -101,7 +128,7 @@ class PaypalController {
                 return response.data;
             }
             catch (error) {
-                //console.log(error)
+                console.log(error);
             }
         });
     }

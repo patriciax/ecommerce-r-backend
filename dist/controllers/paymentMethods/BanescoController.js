@@ -15,17 +15,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BanescoController = void 0;
 const axios_1 = __importDefault(require("axios"));
 const dolarPrice_schema_1 = require("../../models/dolarPrice.schema");
+const taxCalculation_1 = require("../../utils/taxCalculation");
+const numberFormat_1 = require("../../utils/numberFormat");
 class BanescoController {
     constructor() {
-        this.makePayment = (data, cart) => __awaiter(this, void 0, void 0, function* () {
+        this.makePayment = (data, cart, ivaType) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
                 const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne({}).sort({ createdAt: -1 });
                 const total = (_a = cart.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0) * (dolarPrice === null || dolarPrice === void 0 ? void 0 : dolarPrice.price)) !== null && _a !== void 0 ? _a : 1;
+                const totalWithTax = (0, taxCalculation_1.taxCalculations)(total, ivaType);
+                const formatedTotal = (0, numberFormat_1.decimalNumberFormat)(totalWithTax);
                 const response = yield axios_1.default.post(`${process.env.BANESCO_API_URL}/payment`, {
                     "KeyId": process.env.BANESCO_PRIVATE_KEY,
                     "PublicKeyId": process.env.BANESCO_PUBLIC_KEY,
-                    "Amount": `${total}`,
+                    "Amount": `${formatedTotal}`,
                     "Description": data.description,
                     "CardHolder": data.cardHolder,
                     "CardHolderId": data.cardHolderId,

@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const pagoMovilController_1 = require("../controllers/paymentMethods/pagoMovilController");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+const pagoMovilController = new pagoMovilController_1.PagoMovilController();
+router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['BANNER-CREATE']), pagoMovilController.createOrUpdatePagoMovil);
+router.get('/', pagoMovilController.getPagoMovil);
+router.delete('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['BANNER-CREATE']), pagoMovilController.deletePagoMovil);
+exports.default = router;

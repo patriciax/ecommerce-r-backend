@@ -17,7 +17,8 @@ class PasswordRestoreController {
     constructor() {
         this.setRestorePasswordOtp = (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
-                const user = yield user_schema_1.User.findOneAndUpdate({ email: req.body.email }, { passwordResetOtp: (0, otpCreator_1.otpCreator)() }).select({ passwordResetOtp: 1, name: 1, email: 1 });
+                const otp = (0, otpCreator_1.otpCreator)();
+                const user = yield user_schema_1.User.findOneAndUpdate({ email: req.body.email }, { passwordResetOtp: otp }).select({ passwordResetOtp: 1, name: 1, email: 1 });
                 if (!user) {
                     return res.status(404).json({
                         status: 'fail',
@@ -27,7 +28,7 @@ class PasswordRestoreController {
                 const emailController = new emailController_1.EmailController();
                 emailController.sendEmail("emailPasswordReset", user.email, "Password reset", {
                     name: user.name,
-                    emailOtp: user.passwordResetOtp
+                    emailOtp: otp
                 });
                 return res.status(200).json({
                     status: 'success',

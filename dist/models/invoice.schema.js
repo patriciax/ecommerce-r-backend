@@ -29,8 +29,21 @@ const invoiceSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Payment"
     },
+    zelleEmail: {
+        type: String
+    },
+    pagoMovilReference: {
+        type: String
+    },
+    pagoMovilDate: {
+        type: Date
+    },
     carrier: {
         type: Object
+    },
+    purchaseType: {
+        type: String,
+        enum: ['invoice', 'giftCard'],
     },
     created: {
         type: Date,

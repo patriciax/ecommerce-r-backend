@@ -21,6 +21,12 @@ const emailController_1 = require("./emailController");
 const adminEmail_schema_1 = require("../models/adminEmail.schema");
 const cart_schema_1 = require("../models/cart.schema");
 const CreditCardRocaController_1 = require("./paymentMethods/CreditCardRocaController");
+const pagoMovilController_1 = require("./paymentMethods/pagoMovilController");
+const dolarPrice_schema_1 = require("../models/dolarPrice.schema");
+const pagoMovil_schema_1 = require("../models/pagoMovil.schema");
+const ZelleController_1 = require("./paymentMethods/ZelleController");
+const zelle_schema_1 = require("../models/zelle.schema");
+const shipmentController_1 = require("./shipmentController");
 class CheckoutController {
     constructor() {
         this.paymentMethods = [
@@ -32,6 +38,7 @@ class CheckoutController {
             'banesco'
         ];
         this.paymentProcess = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const shipmentController = new shipmentController_1.ShipmentController();
             let tracnsactionOrder = '';
             if ((req.body.paymentMethod !== 'paypal-approve-order')) {
                 const result = yield this.validateCart(req.body.carts);
@@ -44,7 +51,7 @@ class CheckoutController {
                 try {
                     const creditCardRocaController = new CreditCardRocaController_1.CreditCardRocaController();
                     const response = yield creditCardRocaController.makePayment(req.body, req.body.carts);
-                    const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, response);
+                    const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, (response === null || response === void 0 ? void 0 : response.status) == 'success' ? "approved" : "rejected");
                     if ((response === null || response === void 0 ? void 0 : response.status) == 'success') {
                         const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                         this.clearCarts(req);
@@ -72,7 +79,7 @@ class CheckoutController {
             }
             else if (req.body.paymentMethod === 'paypal-create-order') {
                 const paypalProcess = new PaypalController_1.PaypalController();
-                const order = yield paypalProcess.createOrder(req.body.carts);
+                const order = yield paypalProcess.createOrder(req.body.carts, req.body.ivaType, req.body.carrierRate);
                 return res.status(200).json({
                     order,
                     "transactionOrder": tracnsactionOrder
@@ -82,9 +89,14 @@ class CheckoutController {
                 try {
                     const paypalProcess = new PaypalController_1.PaypalController();
                     const response = yield paypalProcess.captureOrder(req.body.orderId);
-                    const payment = yield this.generatePayment(req, 'paypal', req.body.orderId, response);
+                    const payment = yield this.generatePayment(req, 'paypal', req.body.orderId, (response === null || response === void 0 ? void 0 : response.status) == 'COMPLETED' ? "approved" : "rejected");
                     if (response.status == 'COMPLETED') {
-                        const invoice = yield this.generateInvoice(req, req.body.orderId, payment);
+                        let trackingNumber = "";
+                        if (req.body.carrierRate) {
+                            const shippingResponse = yield shipmentController.createShipment(req.body.carrierRate.objectId);
+                            trackingNumber = shippingResponse.trackingNumber;
+                        }
+                        const invoice = yield this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber);
                         this.clearCarts(req);
                         return res.status(200).json({
                             status: 'success',
@@ -109,9 +121,11 @@ class CheckoutController {
             }
             else if (req.body.paymentMethod === 'banesco') {
                 try {
+                    const ip = req.ip.split(':').pop();
+                    req.body.banescoData.ip = ip;
                     const banescoProcess = new BanescoController_1.BanescoController();
-                    const response = yield banescoProcess.makePayment(req.body.banescoData, req.body.carts);
-                    const payment = yield this.generatePayment(req, 'banesco', tracnsactionOrder, response);
+                    const response = yield banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national');
+                    const payment = yield this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected");
                     if (response.success) {
                         const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                         this.clearCarts(req);
@@ -130,6 +144,53 @@ class CheckoutController {
                     });
                 }
                 catch (error) {
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+            }
+            else if (req.body.paymentMethod === 'pagoMovil') {
+                try {
+                    const pagoMovilProcess = new pagoMovilController_1.PagoMovilController();
+                    const response = yield pagoMovilProcess.makePayment(req.body.pagoMovilData, req.body.carts);
+                    const payment = yield this.generatePayment(req, 'pagoMovil', tracnsactionOrder, response);
+                    const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
+                    this.clearCarts(req);
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    });
+                }
+                catch (error) {
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+            }
+            else if (req.body.paymentMethod === 'zelle') {
+                try {
+                    const zelleProcess = new ZelleController_1.ZelleController();
+                    const response = yield zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts);
+                    const payment = yield this.generatePayment(req, 'zelle', tracnsactionOrder, response);
+                    const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
+                    this.clearCarts(req);
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    });
+                }
+                catch (error) {
+                    console.log(error);
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'
@@ -193,27 +254,44 @@ class CheckoutController {
                 status: 'success'
             };
         });
-        this.generatePayment = (req, payment, order, response) => __awaiter(this, void 0, void 0, function* () {
-            var _a;
+        this.generatePayment = (req, payment, order, paymentStatus, purchaseType = 'invoice') => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e;
             let userName = '';
             let userEmail = '';
             let userPhone = '';
             userName = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.name : req.body.name;
             userEmail = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.email : req.body.email;
             userPhone = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.phone : req.body.phone;
+            let pagoMovilData = null;
+            let zelleData = null;
+            if (payment == 'pagoMovil')
+                pagoMovilData = yield pagoMovil_schema_1.PagoMovil.find({});
+            if (payment == 'zelle')
+                zelleData = yield zelle_schema_1.Zelle.find({});
+            let total = 0;
+            const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne({}).sort({ createdAt: -1 });
+            if (purchaseType == 'invoice')
+                total = (_b = (_a = req.body.carts) === null || _a === void 0 ? void 0 : _a.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0)) !== null && _b !== void 0 ? _b : 0;
+            else if (purchaseType == 'giftCard')
+                total = req.body.card.total;
+            const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * (dolarPrice === null || dolarPrice === void 0 ? void 0 : dolarPrice.price) : total;
             const paymentModel = yield payments_schema_1.Payment.create({
-                user: (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a._id,
+                user: (_c = req === null || req === void 0 ? void 0 : req.user) === null || _c === void 0 ? void 0 : _c._id,
                 name: userName,
                 email: userEmail,
                 phone: userPhone,
                 transactionId: order,
                 type: payment,
-                status: response.status == 'COMPLETED' ? 'approved' : 'rejected'
+                status: payment == 'pagoMovil' || payment == 'zelle' ? 'pending' : paymentStatus,
+                total: finalTotal,
+                bank: payment == 'pagoMovil' ? (_d = pagoMovilData[0]) === null || _d === void 0 ? void 0 : _d.bank : undefined,
+                zelleEmail: payment == 'zelle' ? (_e = zelleData[0]) === null || _e === void 0 ? void 0 : _e.email : undefined,
+                purchaseType
             });
             return paymentModel;
         });
-        this.generateInvoice = (req, order, paymentModel) => __awaiter(this, void 0, void 0, function* () {
-            var _b, _c, _d;
+        this.generateInvoice = (req, order, paymentModel, purchaseType = 'invoice', trackingNumber = '') => __awaiter(this, void 0, void 0, function* () {
+            var _f, _g, _h, _j, _k, _l, _m;
             let userName = '';
             let userEmail = '';
             let userPhone = '';
@@ -221,39 +299,45 @@ class CheckoutController {
             userEmail = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.email : req.body.email;
             userPhone = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.phone : req.body.phone;
             const invoice = yield invoice_schema_1.Invoice.create({
-                user: (_b = req === null || req === void 0 ? void 0 : req.user) === null || _b === void 0 ? void 0 : _b._id,
+                user: (_f = req === null || req === void 0 ? void 0 : req.user) === null || _f === void 0 ? void 0 : _f._id,
                 name: userName,
                 email: userEmail,
                 phone: userPhone,
                 transactionOrder: order,
                 payment: paymentModel._id,
-                carrier: req.body.carrier
+                carrier: req.body.carrier,
+                purchaseType,
+                pagoMovilReference: (_h = (_g = req.body.pagoMovilData) === null || _g === void 0 ? void 0 : _g.reference) !== null && _h !== void 0 ? _h : undefined,
+                pagoMovilDate: (_k = (_j = req.body.pagoMovilData) === null || _j === void 0 ? void 0 : _j.date) !== null && _k !== void 0 ? _k : undefined,
+                shippingTracking: trackingNumber !== null && trackingNumber !== void 0 ? trackingNumber : undefined
             });
-            const invoiceProducts = [];
-            for (let cart of req.body.carts) {
-                const productModel = cart.name;
-                const sizeModel = cart.size.name;
-                const colorModel = cart.color.name;
-                invoiceProducts.push({
-                    invoice: invoice._id,
-                    product: cart.productId,
-                    quantity: cart.quantity,
-                    size: cart.size._id,
-                    color: cart.color._id,
-                    productModel: productModel,
-                    colorModel: colorModel,
-                    sizeModel: sizeModel
-                });
+            if (purchaseType == 'invoice') {
+                const invoiceProducts = [];
+                for (let cart of req.body.carts) {
+                    const productModel = cart.name;
+                    const sizeModel = cart.size.name;
+                    const colorModel = cart.color.name;
+                    invoiceProducts.push({
+                        invoice: invoice._id,
+                        product: cart.productId,
+                        quantity: cart.quantity,
+                        size: cart.size._id,
+                        color: cart.color._id,
+                        productModel: productModel,
+                        colorModel: colorModel,
+                        sizeModel: sizeModel
+                    });
+                }
+                yield invoiceProduct_schema_1.InvoiceProduct.insertMany(invoiceProducts);
+                const receiverEmail = ((_l = req === null || req === void 0 ? void 0 : req.user) === null || _l === void 0 ? void 0 : _l.email) || userEmail;
+                const receiverName = ((_m = req === null || req === void 0 ? void 0 : req.user) === null || _m === void 0 ? void 0 : _m.name) || userName;
+                this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber);
+                const adminEmail = yield adminEmail_schema_1.AdminEmail.findOne();
+                if (adminEmail) {
+                    this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber);
+                }
+                this.subsctractStock(req.body.carts);
             }
-            yield invoiceProduct_schema_1.InvoiceProduct.insertMany(invoiceProducts);
-            const receiverEmail = ((_c = req === null || req === void 0 ? void 0 : req.user) === null || _c === void 0 ? void 0 : _c.email) || userEmail;
-            const receiverName = ((_d = req === null || req === void 0 ? void 0 : req.user) === null || _d === void 0 ? void 0 : _d.name) || userName;
-            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts);
-            const adminEmail = yield adminEmail_schema_1.AdminEmail.findOne();
-            if (adminEmail) {
-                this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true);
-            }
-            this.subsctractStock(req.body.carts);
             return invoice;
         });
         this.subsctractStock = (carts) => __awaiter(this, void 0, void 0, function* () {
@@ -266,17 +350,18 @@ class CheckoutController {
                 }
             }
         });
-        this.sendInvoiceEmail = (email, invoiceNumber, name, carts, isAdmin = false) => __awaiter(this, void 0, void 0, function* () {
+        this.sendInvoiceEmail = (email, invoiceNumber, name, carts, isAdmin = false, trackingNumber = "") => __awaiter(this, void 0, void 0, function* () {
             const emailController = new emailController_1.EmailController();
             emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
                 "invoiceNumber": invoiceNumber,
                 "user": name,
-                "carts": carts
+                "carts": carts,
+                "trackingNumber": trackingNumber
             });
         });
         this.clearCarts = (req) => __awaiter(this, void 0, void 0, function* () {
-            var _e;
-            yield cart_schema_1.Cart.deleteMany({ user: (_e = req === null || req === void 0 ? void 0 : req.user) === null || _e === void 0 ? void 0 : _e._id });
+            var _o;
+            yield cart_schema_1.Cart.deleteMany({ user: (_o = req === null || req === void 0 ? void 0 : req.user) === null || _o === void 0 ? void 0 : _o._id });
         });
     }
 }

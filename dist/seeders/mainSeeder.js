@@ -17,6 +17,7 @@ const roleSeeders_1 = require("./roleSeeders");
 const userSeeders_1 = require("./userSeeders");
 const dotenv_1 = __importDefault(require("dotenv"));
 const adminEmailSeeders_1 = require("./adminEmailSeeders");
+const countriesSeeder_1 = require("./countriesSeeder");
 const result = dotenv_1.default.config({ path: `${__dirname}/../config.env` });
 mongoose_1.default.connect(process.env.DATABASE || '').then(() => __awaiter(void 0, void 0, void 0, function* () {
     console.log('Connected to database');
@@ -26,6 +27,8 @@ mongoose_1.default.connect(process.env.DATABASE || '').then(() => __awaiter(void
     yield userSeeder.seed();
     const adminEmailSeeder = new adminEmailSeeders_1.AdminEmailSeeder();
     yield adminEmailSeeder.seed();
+    const countrySeeder = new countriesSeeder_1.CountrySeeder();
+    yield countrySeeder.seed();
     console.log("finish seeding");
     process.exit();
 }));

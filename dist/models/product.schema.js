@@ -60,6 +60,18 @@ const ProductSchema = new mongoose_1.Schema({
         type: String,
         unique: true
     },
+    length: {
+        type: Number,
+    },
+    width: {
+        type: Number,
+    },
+    height: {
+        type: Number,
+    },
+    weight: {
+        type: Number,
+    },
     createdAt: {
         type: Date,
         default: Date.now

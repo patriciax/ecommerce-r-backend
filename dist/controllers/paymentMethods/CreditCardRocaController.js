@@ -16,6 +16,12 @@ const randomNumbersGenerator_1 = require("../../utils/randomNumbersGenerator");
 const emailController_1 = require("../emailController");
 const BanescoController_1 = require("./BanescoController");
 const checkoutController_1 = require("../checkoutController");
+const PaypalController_1 = require("./PaypalController");
+const ZelleController_1 = require("./ZelleController");
+const pagoMovilController_1 = require("./pagoMovilController");
+const dolarPrice_schema_1 = require("../../models/dolarPrice.schema");
+const invoice_schema_1 = require("../../models/invoice.schema");
+const payments_schema_1 = require("../../models/payments.schema");
 // declare global {
 //     namespace Express {
 //         interface Request {
@@ -34,14 +40,17 @@ class CreditCardRocaController {
         this.purchaseCreditCardRoca = (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
                 const checkoutController = new checkoutController_1.CheckoutController();
+                const tracnsactionOrder = yield checkoutController.generateInvoiceOrder();
                 if (req.body.paymentMethod === 'banesco') {
                     try {
-                        const tracnsactionOrder = yield checkoutController.generateInvoiceOrder();
                         const banescoProcess = new BanescoController_1.BanescoController();
-                        const response = yield banescoProcess.makePaymentGiftCard(req.body.banescoData, req.body.card.total);
-                        const payment = yield checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response);
+                        const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne({}).sort({ createdAt: -1 });
+                        const total = req.body.card.total * dolarPrice.price;
+                        const response = yield banescoProcess.makePaymentGiftCard(req.body.banescoData, total);
+                        const payment = yield checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected", 'giftCard');
                         if (response.success) {
-                            this.createCreditCardRoca(req, res);
+                            const invoice = yield checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard');
+                            yield this.createCreditCardRoca(req, res, invoice, 'active');
                             return res.status(200).json({
                                 status: 'success',
                                 message: 'PAYMENT_SUCCESS',
@@ -57,7 +66,90 @@ class CreditCardRocaController {
                         });
                     }
                     catch (error) {
+                        return res.status(400).json({
+                            status: 'fail',
+                            message: 'PAYMENT_FAILED'
+                        });
+                    }
+                }
+                else if (req.body.paymentMethod === 'paypal-create-order') {
+                    const paypalProcess = new PaypalController_1.PaypalController();
+                    const order = yield paypalProcess.createOrderCard(req.body.card.total);
+                    return res.status(200).json({
+                        order,
+                        "transactionOrder": tracnsactionOrder
+                    });
+                }
+                else if (req.body.paymentMethod === 'paypal-approve-order') {
+                    try {
+                        const paypalProcess = new PaypalController_1.PaypalController();
+                        const response = yield paypalProcess.captureOrder(req.body.orderId);
+                        if (response.status == 'COMPLETED') {
+                            const payment = yield checkoutController.generatePayment(req, 'paypal', tracnsactionOrder, (response === null || response === void 0 ? void 0 : response.status) == 'COMPLETED' ? "approved" : "rejected", 'giftCard');
+                            const invoice = yield checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard');
+                            this.createCreditCardRoca(req, res, invoice, 'active');
+                            return res.status(200).json({
+                                status: 'success',
+                                message: 'PAYMENT_SUCCESS',
+                                data: {
+                                    tracnsactionOrder,
+                                    card: req.body.card
+                                }
+                            });
+                        }
+                        return res.status(400).json({
+                            status: 'fail',
+                            message: 'PAYMENT_FAILED'
+                        });
+                    }
+                    catch (error) {
+                        return res.status(400).json({
+                            status: 'fail',
+                            message: 'PAYMENT_FAILED'
+                        });
+                    }
+                }
+                else if (req.body.paymentMethod === 'pagoMovil') {
+                    try {
+                        const pagoMovilProcess = new pagoMovilController_1.PagoMovilController();
+                        const response = yield pagoMovilProcess.makePayment(req.body.pagoMovilData, req.body.carts);
+                        const payment = yield checkoutController.generatePayment(req, 'pagoMovil', tracnsactionOrder, response, 'giftCard');
+                        const invoice = yield checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard');
+                        yield this.createCreditCardRoca(req, res, invoice, 'inactive');
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                tracnsactionOrder,
+                                card: req.body.card
+                            }
+                        });
+                    }
+                    catch (error) {
                         console.log(error);
+                        return res.status(400).json({
+                            status: 'fail',
+                            message: 'PAYMENT_FAILED'
+                        });
+                    }
+                }
+                else if (req.body.paymentMethod === 'zelle') {
+                    try {
+                        const zelleProcess = new ZelleController_1.ZelleController();
+                        const response = yield zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts);
+                        const payment = yield checkoutController.generatePayment(req, 'zelle', tracnsactionOrder, response, 'giftCard');
+                        const invoice = yield checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard');
+                        yield this.createCreditCardRoca(req, res, invoice, 'inactive');
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                tracnsactionOrder,
+                                card: req.body.card
+                            }
+                        });
+                    }
+                    catch (error) {
                         return res.status(400).json({
                             status: 'fail',
                             message: 'PAYMENT_FAILED'
@@ -66,14 +158,13 @@ class CreditCardRocaController {
                 }
             }
             catch (error) {
-                console.log(error);
                 res.status(400).json({
                     status: 'fail',
                     message: 'SOMETHING_WENT_WRONG'
                 });
             }
         });
-        this.createCreditCardRoca = (request, response) => __awaiter(this, void 0, void 0, function* () {
+        this.createCreditCardRoca = (request, response, invoice, status = 'active') => __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
                 const errors = this.validateForm(request);
@@ -92,30 +183,33 @@ class CreditCardRocaController {
                     };
                 }
                 let creditCardNumber = null;
-                let exists = true;
-                while (exists) {
-                    creditCardNumber = (0, randomNumbersGenerator_1.randomNumbersGenerator)(16);
-                    exists = (yield creditCardRoca_schema_1.CreditCardRoca.findOne({ cardNumber: creditCardNumber })) || false;
-                }
+                creditCardNumber = (0, randomNumbersGenerator_1.randomNumbersGenerator)(16);
                 const cardPin = (0, randomNumbersGenerator_1.randomNumbersGenerator)(4);
                 yield creditCardRoca_schema_1.CreditCardRoca.create({
                     cardNumber: creditCardNumber,
                     cardPin: cardPin,
+                    invoice: invoice._id,
+                    status: status,
                     credit: giftCard.amount,
                     email: request.body.card.emailTo,
                     fromUser: (_a = request === null || request === void 0 ? void 0 : request.user) === null || _a === void 0 ? void 0 : _a._id,
+                    message: request.body.card.message
                 });
-                const emailController = new emailController_1.EmailController();
-                emailController.sendEmail("giftCard", request.body.card.emailTo, "Gift card recibida", {
-                    cardNumber: creditCardNumber,
-                    cardPin: cardPin,
-                });
+                if (status == 'active') {
+                    const emailController = new emailController_1.EmailController();
+                    emailController.sendEmail("giftCard", request.body.card.emailTo, "Gift card recibida", {
+                        cardNumber: creditCardNumber,
+                        cardPin: cardPin,
+                        message: request.body.card.message
+                    });
+                }
                 return {
                     status: 'success',
                     message: 'CREDIT_CARD_ROCA_CREATED',
                 };
             }
             catch (error) {
+                console.log(error);
                 return {
                     status: 'fail',
                     message: 'SOMETHING_WENT_WRONG'
@@ -192,7 +286,6 @@ class CreditCardRocaController {
             try {
                 const total = cart.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0);
                 const creditCardRoca = yield creditCardRoca_schema_1.CreditCardRoca.find({ email: data.email });
-                console.log("creditCardFound", creditCardRoca);
                 if (!creditCardRoca) {
                     return {
                         status: 'fail',
@@ -212,7 +305,6 @@ class CreditCardRocaController {
                         break;
                     }
                 }
-                console.log("creditCardData", !cardNumber, !cardPin, !credits);
                 if (!cardNumber || !cardPin || !credits) {
                     return {
                         status: 'fail',
@@ -238,6 +330,65 @@ class CreditCardRocaController {
                     status: 'fail',
                     message: 'CREDIT_CARD_NOT_FOUND'
                 };
+            }
+        });
+        this.updateGiftCardStatus = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _c;
+            try {
+                const emailController = new emailController_1.EmailController();
+                const invoice = yield invoice_schema_1.Invoice.findById(req.params.invoice);
+                if (!invoice) {
+                    return res.status(404).json({
+                        status: 'fail',
+                        message: "NOT_FOUND"
+                    });
+                }
+                const payment = yield payments_schema_1.Payment.findById(invoice.payment);
+                if (!payment) {
+                    return res.status(404).json({
+                        status: 'fail',
+                        message: "NOT_FOUND"
+                    });
+                }
+                if (req.body.status === "pending" || req.body.status === "approved" || req.body.status === "rejected") {
+                    payment.status = req.body.status;
+                }
+                else {
+                    payment.status = 'pending';
+                }
+                yield payment.save();
+                if (payment.status == 'approved') {
+                    const creditCardNumber = (0, randomNumbersGenerator_1.randomNumbersGenerator)(16);
+                    const cardPin = (0, randomNumbersGenerator_1.randomNumbersGenerator)(4);
+                    const creditCardCopy = yield creditCardRoca_schema_1.CreditCardRoca.findOne({ invoice: req.params.invoice });
+                    const creditCardObject = yield creditCardRoca_schema_1.CreditCardRoca.create({ invoice: invoice._id, cardNumber: creditCardNumber, cardPin: cardPin, status: 'active', credit: creditCardCopy === null || creditCardCopy === void 0 ? void 0 : creditCardCopy.credit, email: creditCardCopy === null || creditCardCopy === void 0 ? void 0 : creditCardCopy.email, fromUser: creditCardCopy === null || creditCardCopy === void 0 ? void 0 : creditCardCopy.fromUser, message: creditCardCopy === null || creditCardCopy === void 0 ? void 0 : creditCardCopy.message });
+                    yield creditCardRoca_schema_1.CreditCardRoca.findByIdAndDelete(creditCardCopy === null || creditCardCopy === void 0 ? void 0 : creditCardCopy._id);
+                    if (!creditCardObject) {
+                        return res.status(404).json({
+                            status: 'fail',
+                            message: "NOT_FOUND"
+                        });
+                    }
+                    emailController.sendEmail("giftCard", creditCardObject === null || creditCardObject === void 0 ? void 0 : creditCardObject.email, "Gift card recibida", {
+                        cardNumber: creditCardNumber,
+                        cardPin: cardPin,
+                        message: creditCardObject === null || creditCardObject === void 0 ? void 0 : creditCardObject.message
+                    });
+                }
+                else if (payment.status == 'rejected') {
+                    emailController.sendEmail("rejectedPayment", (_c = invoice === null || invoice === void 0 ? void 0 : invoice.email) !== null && _c !== void 0 ? _c : '', "Pago rechazado", {
+                        "reference": invoice.pagoMovilReference
+                    });
+                }
+                return res.status(200).json({
+                    status: 'success',
+                    data: {
+                        payment
+                    }
+                });
+            }
+            catch (error) {
+                return error;
             }
         });
     }

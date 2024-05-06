@@ -25,7 +25,6 @@ class CartController {
             if (!product)
                 errors.push('PRODUCT_NOT_FOUND');
             const stock = (_b = (_a = product === null || product === void 0 ? void 0 : product.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)) === null || _a === void 0 ? void 0 : _a.stock) !== null && _b !== void 0 ? _b : 0;
-            console.log(product === null || product === void 0 ? void 0 : product.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id));
             if (product && req.body.quantity > stock)
                 errors.push('QUANTITY_EXCEEDS_STOCK');
             return errors;
@@ -169,18 +168,13 @@ class CartController {
                 }
                 else {
                     for (const item of products) {
-                        const product = cartItems.find((product) => product.product != (item === null || item === void 0 ? void 0 : item.product));
+                        const product = cartItems.find((cartProduct) => cartProduct.product == (item === null || item === void 0 ? void 0 : item.product) && cartProduct.size._id == (item === null || item === void 0 ? void 0 : item.size) && cartProduct.color._id == (item === null || item === void 0 ? void 0 : item.color));
                         if (product) {
-                            yield cart_schema_1.Cart.create({
-                                user: req.user._id,
-                                product: product.product,
-                                size: product.size,
-                                color: product.color,
-                                quantity: item.quantity,
-                            });
-                        }
-                        else {
-                            yield cart_schema_1.Cart.findByIdAndUpdate(item._id, { quantity: item.quantity });
+                            const cartProductToUpdate = yield cart_schema_1.Cart.findOne({ size: product.size._id, color: product.color._id, product: product.product });
+                            if (!cartProductToUpdate)
+                                continue;
+                            cartProductToUpdate.quantity = cartProductToUpdate.quantity + item.quantity;
+                            cartProductToUpdate.save();
                         }
                     }
                 }

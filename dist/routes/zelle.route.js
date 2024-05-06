@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const ZelleController_1 = require("../controllers/paymentMethods/ZelleController");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+const zelleController = new ZelleController_1.ZelleController();
+router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['BANNER-CREATE']), zelleController.createOrUpdateZelle);
+router.get('/', zelleController.getZelle);
+router.delete('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.restrictsTo)(['BANNER-CREATE']), zelleController.deleteZelle);
+exports.default = router;

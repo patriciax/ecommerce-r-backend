@@ -28,9 +28,21 @@ const CreditCardRocaSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
     },
+    invoice: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Invoice'
+    },
+    status: {
+        type: String,
+        default: 'active',
+        enum: ['active', 'inactive']
+    },
     email: {
         type: String,
         required: true
+    },
+    message: {
+        type: String
     },
     credit: {
         type: Number,
