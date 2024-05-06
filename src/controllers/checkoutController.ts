@@ -63,7 +63,13 @@ export class CheckoutController {
                 const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected")
                 if(response?.status == 'success'){
 
-                    const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+                    let trackingNumber = ''
+                    if(req.body.carrierRate){
+                        const shippingResponse = await shipmentController.createShipment(req.body.carrierRate.objectId)
+                        trackingNumber = shippingResponse.trackingNumber
+                    }
+
+                    const invoice = await this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber)
 
                     this.clearCarts(req)
 
