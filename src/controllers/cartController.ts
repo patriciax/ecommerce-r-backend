@@ -24,8 +24,6 @@ export class CartController {
 
         const stock = product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id)?.stock ?? 0
 
-        console.log(product?.productVariations.find((item) => item.color[0]._id == req.body.color._id && item.size[0]._id == req.body.size._id))
-
         if(product && req.body.quantity > stock) errors.push('QUANTITY_EXCEEDS_STOCK')
 
         return errors
@@ -201,19 +199,18 @@ export class CartController {
             else{
 
                 for(const item of products){
-                    const product = cartItems.find((product:any) => product.product != item?.product)
+                    
+                    const product: any = cartItems.find((cartProduct: any) => cartProduct.product == item?.product && cartProduct.size._id == item?.size && cartProduct.color._id == item?.color)
+                    
                     if(product){
 
-                        await Cart.create({
-                            user: req.user._id,
-                            product: product.product,
-                            size: product.size,
-                            color: product.color,
-                            quantity: item.quantity,
-                        })
+                        const cartProductToUpdate = await Cart.findOne({size: product.size._id, color: product.color._id, product: product.product})
+                        
+                        if(!cartProductToUpdate) continue
 
-                    }else{
-                        await Cart.findByIdAndUpdate(item._id, {quantity: item.quantity})
+                        cartProductToUpdate.quantity = cartProductToUpdate.quantity + item.quantity
+                        cartProductToUpdate.save()
+                        
                     }   
                     
                 }

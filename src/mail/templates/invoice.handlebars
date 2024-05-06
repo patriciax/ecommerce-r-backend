@@ -2,8 +2,9 @@ Hola, {{user}},
 
 Tu número de factura es: {{invoiceNumber}}.
 
-Los productos comprados fueron:
-
+{{#if trackingNumber}}
+<p>Número de tracking: {{ trackingNumber }}</p>
+{{/if}}
 <ul>
     {{#each carts}}
         <li>{{this.productModel}} - {{ this.sizeModel }} - {{this.colorModel}} {{this.quantity}}</li>

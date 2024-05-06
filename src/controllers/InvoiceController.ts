@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { Invoice } from "../models/invoice.schema";
 import { APIFeatures } from "../utils/apiFeatures";
 import { EmailController } from "./emailController";
+import { Payment } from "../models/payments.schema";
+import { InvoiceProduct } from "../models/invoiceProduct.schema";
+import { Product } from "../models/product.schema";
 
 export class InvoiceController {
 
@@ -9,7 +12,7 @@ export class InvoiceController {
 
         try{
 
-            const features = new APIFeatures(Invoice.find().populate('user').populate("invoiceProduct"), req.query)
+            const features = new APIFeatures(Invoice.find().populate("payment").populate('user').populate("invoiceProduct"), req.query)
             .filter()
             .sort()
             .limitFields()
@@ -64,6 +67,104 @@ export class InvoiceController {
 
         }catch(error){
 
+        }
+
+    }
+
+    public updateInvoiceStatus = async(req:Request, res:Response) => {
+        
+        try{
+
+            const invoice = await Invoice.findById(req.params.invoice)
+             
+            if(!invoice){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: "NOT_FOUND"
+                })
+            }
+
+            const payment = await Payment.findById(invoice.payment)
+
+            if(!payment){
+                return res.status(404).json({
+                    status: 'fail',
+                    message: "NOT_FOUND"
+                })
+            }
+
+            if (req.body.status === "pending" || req.body.status === "approved" || req.body.status === "rejected") {
+                payment.status = req.body.status;
+            } else {
+                payment.status = 'pending';
+            }
+
+            if(payment.status == 'rejected'){
+                const invoiceProducts = await InvoiceProduct.find({invoice: invoice._id})
+                
+                invoiceProducts.forEach(async (invoiceProduct) => {
+                    
+                    const product = await Product.findById(invoiceProduct.product)
+                    if(product){
+                        product.productVariations.forEach(variation => {
+                            
+                            if(invoiceProduct.size?._id.toString() == variation.size[0].toString() && invoiceProduct.color?._id.toString() == variation.color[0].toString()){
+                                variation.stock = variation.stock + invoiceProduct.quantity
+                            }
+                            
+                        })
+
+                        await product?.save()
+                    }
+
+                })
+
+                const emailController = new EmailController()
+                emailController.sendEmail("rejectedPayment", invoice?.email ?? '', "Pago rechazado", {
+                    "reference": invoice.pagoMovilReference
+                })
+
+            }
+
+            await payment.save();
+
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    payment
+                }
+            })
+
+        }catch(error){
+            
+            return error
+        }
+
+    }
+
+    public userInvoices = async (req: Request, res: Response) => {
+
+        try{
+
+            const features = new APIFeatures(Invoice.find({user: req.user._id, purchaseType: 'invoice'}).populate("payment").populate("invoiceProduct"), req.query)
+            .filter()
+            .sort()
+            .limitFields()
+            .paginate()
+            const invoices = await features.query
+
+            return res.status(200).json({
+                status: 'success',
+                results: invoices.length,
+                data: {
+                    invoices
+                }
+            })
+
+        }catch(error){
+            return res.status(400).json({
+                status: 'error'
+            })
         }
 
     }

@@ -9,7 +9,8 @@ export class PasswordRestoreController {
 
         try{
 
-            const user = await User.findOneAndUpdate({email: req.body.email}, {passwordResetOtp: otpCreator()}).select({passwordResetOtp: 1, name: 1, email: 1})
+            const otp = otpCreator()
+            const user = await User.findOneAndUpdate({email: req.body.email}, {passwordResetOtp: otp}).select({passwordResetOtp: 1, name: 1, email: 1})
             if(!user){
                 return res.status(404).json({
                     status: 'fail',
@@ -20,7 +21,7 @@ export class PasswordRestoreController {
             const emailController = new EmailController()
             emailController.sendEmail("emailPasswordReset", user.email, "Password reset", {
                 name: user.name,
-                emailOtp: user.passwordResetOtp
+                emailOtp: otp
             })
 
             return res.status(200).json({

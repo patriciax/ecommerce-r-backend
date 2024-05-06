@@ -1,4 +1,6 @@
 import axios from "axios"
+import { taxCalculations } from "../../utils/taxCalculation";
+import { decimalNumberFormat } from "../../utils/numberFormat";
 
 export class PaypalController {
 
@@ -33,9 +35,14 @@ export class PaypalController {
            
     }
 
-    public createOrder = async (cart:any) => {
+    public createOrder = async (cart:any, ivaType:string, carrierRate:any) => {
         
-      const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+      let total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+      total += carrierRate ? carrierRate?.amount * 1 : 0
+
+      
+      const totalWithTax = taxCalculations(total, ivaType)
+      const formatedTotal = decimalNumberFormat(totalWithTax)
         
         const accessToken = await this.generateAccessToken();
         const url = `${this.baseUrl()}/v2/checkout/orders`;
@@ -45,7 +52,7 @@ export class PaypalController {
             {
               amount: {
                 currency_code: "USD",
-                value: total,
+                value: parseFloat(formatedTotal),
               },
             },
           ],
@@ -71,7 +78,34 @@ export class PaypalController {
           method: "POST",
           body: JSON.stringify(payload),
         });*/
-        console.log(response.data)
+        
+        return response.data
+    };
+
+    public createOrderCard = async (cardPrice:any) => {
+        
+      const total = cardPrice
+        
+        const accessToken = await this.generateAccessToken();
+        const url = `${this.baseUrl()}/v2/checkout/orders`;
+        const payload = {
+          intent: "CAPTURE",
+          purchase_units: [
+            {
+              amount: {
+                currency_code: "USD",
+                value: total,
+              },
+            },
+          ],
+        };
+
+        const response = await axios.post(url, payload, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`
+            }
+        })
         
         return response.data
     };
@@ -106,7 +140,7 @@ export class PaypalController {
 
         }catch(error){
 
-            //console.log(error)
+            console.log(error)
 
         }
       };

@@ -23,9 +23,21 @@ const CreditCardRocaSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
     },
+    invoice: {
+        type: Schema.Types.ObjectId,
+        ref: 'Invoice'
+    },
+    status: {
+        type: String,
+        default: 'active',
+        enum: ['active', 'inactive']
+    },
     email: {
         type: String,
         required: true
+    },
+    message: {
+        type: String
     },
     credit: {
         type: Number,

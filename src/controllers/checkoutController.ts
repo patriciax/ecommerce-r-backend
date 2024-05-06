@@ -11,6 +11,12 @@ import { AdminEmail } from "../models/adminEmail.schema";
 import { Cart } from "../models/cart.schema";
 import { CreditCardRoca } from "../models/creditCardRoca.schema";
 import { CreditCardRocaController } from "./paymentMethods/CreditCardRocaController";
+import { PagoMovilController } from "./paymentMethods/pagoMovilController";
+import { DolarPrice } from "../models/dolarPrice.schema";
+import { PagoMovil } from "../models/pagoMovil.schema";
+import { ZelleController } from "./paymentMethods/ZelleController";
+import { Zelle } from "../models/zelle.schema";
+import { ShipmentController } from "./shipmentController";
 
 declare global {
     namespace Express {
@@ -34,6 +40,8 @@ export class CheckoutController {
     
     public paymentProcess = async (req: any, res: any) => {
         
+        const shipmentController = new ShipmentController()
+
         let tracnsactionOrder = ''
         if((req.body.paymentMethod !== 'paypal-approve-order')){
             const result = await this.validateCart(req.body.carts)
@@ -52,8 +60,7 @@ export class CheckoutController {
                 const creditCardRocaController = new CreditCardRocaController()
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
 
-                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response)
-
+                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected")
                 if(response?.status == 'success'){
 
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
@@ -86,7 +93,7 @@ export class CheckoutController {
 
         else if(req.body.paymentMethod === 'paypal-create-order'){
             const paypalProcess = new PaypalController()
-            const order = await paypalProcess.createOrder(req.body.carts)
+            const order = await paypalProcess.createOrder(req.body.carts, req.body.ivaType, req.body.carrierRate)
             return res.status(200).json({
                 order,
                 "transactionOrder": tracnsactionOrder
@@ -99,12 +106,17 @@ export class CheckoutController {
                 const paypalProcess = new PaypalController()
                 const response = await paypalProcess.captureOrder(req.body.orderId)
 
-                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response)
+                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected")
 
                 if(response.status == 'COMPLETED'){
+                    let trackingNumber = ""
+                    if(req.body.carrierRate){
+                        const shippingResponse = await shipmentController.createShipment(req.body.carrierRate.objectId)
+                        trackingNumber = shippingResponse.trackingNumber
+                    }
 
-                    const invoice = await this.generateInvoice(req, req.body.orderId, payment)
-
+                    const invoice = await this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber)
+                    
                     this.clearCarts(req)
 
                     return res.status(200).json({
@@ -133,10 +145,12 @@ export class CheckoutController {
         else if(req.body.paymentMethod === 'banesco'){
             try{
 
-                const banescoProcess = new BanescoController()
-                const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts)
+                const ip = req.ip.split(':').pop()
+                req.body.banescoData.ip = ip
 
-                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response)
+                const banescoProcess = new BanescoController()
+                const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national')
+                const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected")
                 
                 if(response.success){
 
@@ -160,6 +174,69 @@ export class CheckoutController {
                 })
 
             }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+            }
+
+        }
+
+        else if(req.body.paymentMethod === 'pagoMovil'){
+            try{
+
+                const pagoMovilProcess = new PagoMovilController()
+                const response = await pagoMovilProcess.makePayment(req.body.pagoMovilData, req.body.carts)
+
+                const payment = await this.generatePayment(req, 'pagoMovil', tracnsactionOrder, response)
+                
+                const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                this.clearCarts(req)
+
+                return res.status(200).json({
+                    status: 'success',
+                    message: 'PAYMENT_SUCCESS',
+                    data: {
+                        invoice,
+                        cart: req.body.carts
+                    }
+                })
+                
+
+            }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+            }
+
+        }
+
+        else if(req.body.paymentMethod === 'zelle'){
+            try{
+
+                const zelleProcess = new ZelleController()
+                const response = await zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts)
+
+                const payment = await this.generatePayment(req, 'zelle', tracnsactionOrder, response)
+                
+                const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                this.clearCarts(req)
+
+                return res.status(200).json({
+                    status: 'success',
+                    message: 'PAYMENT_SUCCESS',
+                    data: {
+                        invoice,
+                        cart: req.body.carts
+                    }
+                })
+                
+
+            }catch(error){
+                console.log(error)
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
@@ -242,7 +319,7 @@ export class CheckoutController {
         }
     }
 
-    public generatePayment = async(req:Request, payment:string, order:string, response:any) => {
+    public generatePayment = async(req:Request, payment:string, order:string, paymentStatus:any, purchaseType:string = 'invoice') => {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -250,7 +327,26 @@ export class CheckoutController {
         userName = req?.user ? req?.user.name : req.body.name
         userEmail = req?.user ? req?.user.email : req.body.email
         userPhone = req?.user ? req?.user.phone : req.body.phone
+        let pagoMovilData:any = null
+        let zelleData:any = null
+
+        if(payment == 'pagoMovil')
+            pagoMovilData = await PagoMovil.find({})
+
+        if(payment == 'zelle')
+            zelleData = await Zelle.find({})
         
+        let total = 0
+        const dolarPrice:any = await DolarPrice.findOne({}).sort({createdAt: -1})
+
+        if(purchaseType == 'invoice')
+            total = req.body.carts?.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0) ?? 0
+
+        else if(purchaseType == 'giftCard')
+            total = req.body.card.total
+        
+        const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * dolarPrice?.price : total
+
         const paymentModel = await Payment.create({
             user: req?.user?._id,   
             name: userName,
@@ -258,14 +354,18 @@ export class CheckoutController {
             phone: userPhone,
             transactionId: order,
             type: payment,
-            status: response.status == 'COMPLETED' ? 'approved' : 'rejected'
+            status: payment == 'pagoMovil' || payment == 'zelle' ? 'pending' : paymentStatus,
+            total: finalTotal,
+            bank: payment == 'pagoMovil' ? pagoMovilData[0]?.bank : undefined,
+            zelleEmail: payment == 'zelle' ? zelleData[0]?.email : undefined,
+            purchaseType
         })
 
         return paymentModel
 
     }
 
-    public generateInvoice = async(req:Request, order:string, paymentModel:any) => {
+    public generateInvoice = async(req:Request, order:string, paymentModel:any, purchaseType:string = 'invoice', trackingNumber = '') => {
         
         let userName = ''
         let userEmail = ''
@@ -282,44 +382,52 @@ export class CheckoutController {
             phone: userPhone,
             transactionOrder: order,
             payment: paymentModel._id,
-            carrier: req.body.carrier
+            carrier: req.body.carrier,
+            purchaseType,
+            pagoMovilReference: req.body.pagoMovilData?.reference ?? undefined,
+            pagoMovilDate: req.body.pagoMovilData?.date ?? undefined,
+            shippingTracking: trackingNumber ?? undefined
         })
 
-        const invoiceProducts = []
+        if(purchaseType == 'invoice'){
+            const invoiceProducts = []
 
-        for(let cart of req.body.carts){
+            for(let cart of req.body.carts){
 
-            const productModel = cart.name
-            const sizeModel = cart.size.name
-            const colorModel = cart.color.name
+                const productModel = cart.name
+                const sizeModel = cart.size.name
+                const colorModel = cart.color.name
 
-            invoiceProducts.push(
-                {
-                    invoice: invoice._id,
-                    product: cart.productId,
-                    quantity: cart.quantity,
-                    size: cart.size._id,
-                    color: cart.color._id,
-                    productModel: productModel,
-                    colorModel: colorModel,
-                    sizeModel: sizeModel
-                }
-            )
+                invoiceProducts.push(
+                    {
+                        invoice: invoice._id,
+                        product: cart.productId,
+                        quantity: cart.quantity,
+                        size: cart.size._id,
+                        color: cart.color._id,
+                        productModel: productModel,
+                        colorModel: colorModel,
+                        sizeModel: sizeModel
+                    }
+                )
 
+            }
+
+            await InvoiceProduct.insertMany(invoiceProducts)
+            const receiverEmail = req?.user?.email || userEmail
+            const receiverName = req?.user?.name || userName
+
+            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber)
+
+            const adminEmail = await AdminEmail.findOne()
+            if(adminEmail){
+                this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber)
+            }
+            
+            this.subsctractStock(req.body.carts)
+        
         }
-
-        await InvoiceProduct.insertMany(invoiceProducts)
-        const receiverEmail = req?.user?.email || userEmail
-        const receiverName = req?.user?.name || userName
-
-        this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts)
-
-        const adminEmail = await AdminEmail.findOne()
-        if(adminEmail){
-            this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true)
-        }
-
-        this.subsctractStock(req.body.carts)
+         
         return invoice
     }
 
@@ -335,13 +443,13 @@ export class CheckoutController {
         }
     }
 
-    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false) => {
-
+    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false, trackingNumber:string = "") => {
         const emailController = new EmailController()
         emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
             "invoiceNumber": invoiceNumber,
             "user": name,
-            "carts": carts
+            "carts": carts,
+            "trackingNumber": trackingNumber
         })
     }
 
