@@ -31,6 +31,12 @@ const paymentSchema = new Schema({
         type:String,
         enum:['invoice','giftCard'],
     },
+    taxAmount:{
+        type: Object
+    },
+    carrierRate: {
+        type: Object,
+    },
     zelleEmail: {
         type: String
     },

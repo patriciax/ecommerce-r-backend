@@ -60,7 +60,7 @@ export class CheckoutController {
                 const creditCardRocaController = new CreditCardRocaController()
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
 
-                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected")
+                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected", 'invoice', req.body.carrierRate)
                 if(response?.status == 'success'){
 
                     let trackingNumber = ''
@@ -112,7 +112,7 @@ export class CheckoutController {
                 const paypalProcess = new PaypalController()
                 const response = await paypalProcess.captureOrder(req.body.orderId)
 
-                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected")
+                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected", 'invoice', req.body.carrierRate)
 
                 if(response.status == 'COMPLETED'){
                     let trackingNumber = ""
@@ -225,7 +225,9 @@ export class CheckoutController {
                 const zelleProcess = new ZelleController()
                 const response = await zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts)
 
-                const payment = await this.generatePayment(req, 'zelle', tracnsactionOrder, response)
+                const carrierRate = req.body.carrierRate ? req.body.carrierRate : null
+
+                const payment = await this.generatePayment(req, 'zelle', tracnsactionOrder, response, 'invoice', carrierRate)
                 
                 const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
 
@@ -325,7 +327,7 @@ export class CheckoutController {
         }
     }
 
-    public generatePayment = async(req:Request, payment:string, order:string, paymentStatus:any, purchaseType:string = 'invoice') => {
+    public generatePayment = async(req:Request, payment:string, order:string, paymentStatus:any, purchaseType:string = 'invoice', carrierRate:any = null) => {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -352,6 +354,9 @@ export class CheckoutController {
             total = req.body.card.total
         
         const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * dolarPrice?.price : total
+        const subtotal = (finalTotal + (carrierRate ? carrierRate?.amount * 1 : 0))
+
+        let taxAmount = subtotal * (carrierRate ? 0.06998 : 0.16)
 
         const paymentModel = await Payment.create({
             user: req?.user?._id,   
@@ -364,7 +369,9 @@ export class CheckoutController {
             total: finalTotal,
             bank: payment == 'pagoMovil' ? pagoMovilData[0]?.bank : undefined,
             zelleEmail: payment == 'zelle' ? zelleData[0]?.email : undefined,
-            purchaseType
+            purchaseType,
+            taxAmount,
+            carrierRate
         })
 
         return paymentModel

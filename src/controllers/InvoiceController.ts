@@ -5,6 +5,7 @@ import { EmailController } from "./emailController";
 import { Payment } from "../models/payments.schema";
 import { InvoiceProduct } from "../models/invoiceProduct.schema";
 import { Product } from "../models/product.schema";
+import { ShipmentController } from "./shipmentController";
 
 export class InvoiceController {
 
@@ -123,6 +124,14 @@ export class InvoiceController {
                 emailController.sendEmail("rejectedPayment", invoice?.email ?? '', "Pago rechazado", {
                     "reference": invoice.pagoMovilReference
                 })
+
+            }else{
+
+                const shipmentController = new ShipmentController()
+                const response = await shipmentController.createShipment(payment.carrierRate.objectId)
+
+                invoice.shippingTracking = response.trackingNumber
+                await invoice.save()
 
             }
 
