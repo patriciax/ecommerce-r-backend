@@ -37,6 +37,9 @@ const paymentSchema = new Schema({
     carrierRate: {
         type: Object,
     },
+    carrierRateAmount: {
+        type: Number
+    },
     zelleEmail: {
         type: String
     },

@@ -23,6 +23,7 @@ import pagoMovilRoute from './routes/pagomovil.route'
 import zelleRoute from './routes/zelle.route'
 import shipmentRoute from './routes/shipment.route'
 import footerRoute from './routes/footer.route'
+import statisticRoute from './routes/statistic.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -75,6 +76,7 @@ app.use("/api/v1/pago-movil", pagoMovilRoute)
 app.use("/api/v1/zelle", zelleRoute)
 app.use("/api/v1/shipment", shipmentRoute)
 app.use("/api/v1/footers", footerRoute)
+app.use("/api/v1/statistics", statisticRoute)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({

@@ -48,7 +48,7 @@ export class MercantilController {
     }
 
     private decrypt(key:any, data:any) {
-
+        
         const decodedData = Buffer.from(data, 'base64').toString('binary');
         const decipher = createDecipheriv(this.OPENSSL_CIPHER_NAME, key, '');
         let decrypted = decipher.update(decodedData, 'base64', 'utf8');

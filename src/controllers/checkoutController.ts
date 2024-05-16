@@ -371,7 +371,8 @@ export class CheckoutController {
             zelleEmail: payment == 'zelle' ? zelleData[0]?.email : undefined,
             purchaseType,
             taxAmount,
-            carrierRate
+            carrierRate,
+            carrierRateAmount: carrierRate?.amount ?? undefined
         })
 
         return paymentModel

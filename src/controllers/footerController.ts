@@ -3,6 +3,29 @@ import { Footer } from "../models/footer.schema";
 import slugify from "slugify";
 
 export class FooterController {
+
+    public async getItemBySlug(req:Request, res:Response) {
+
+        try{
+
+            const findSlug = await Footer.findOne({slug: req.params.slug})
+            console.log(findSlug)
+            if(!findSlug){
+                return res.status(404).json({
+                    status: 'fail'
+                });
+            }
+
+            return res.status(200).json({
+                status: 'success',
+                data: findSlug
+            })
+
+        }catch(error){
+
+        }
+
+    }
   
     public async createFooter(req:Request, res:Response) {
 
@@ -51,7 +74,7 @@ export class FooterController {
             });
 
         }catch(error){
-            console.error(error);
+
             return res.status(500).json({status: 'error'});
         }
 
@@ -136,7 +159,7 @@ export class FooterController {
         try{
 
             const footer = await Footer.find({});
-            console.log(footer)
+
             if(!footer){
                 return res.status(404).json({
                     status: 'fail'
