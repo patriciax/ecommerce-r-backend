@@ -17,6 +17,8 @@ import { PagoMovil } from "../models/pagoMovil.schema";
 import { ZelleController } from "./paymentMethods/ZelleController";
 import { Zelle } from "../models/zelle.schema";
 import { ShipmentController } from "./shipmentController";
+import { AllTimePayment } from "../models/allTimePayments";
+import { AllTimePurchase } from "../models/allTimePurchases.schema";
 
 declare global {
     namespace Express {
@@ -141,6 +143,7 @@ export class CheckoutController {
                 })
 
             }catch(error){
+       
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
@@ -355,8 +358,8 @@ export class CheckoutController {
         
         const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * dolarPrice?.price : total
         const subtotal = (finalTotal + (carrierRate ? carrierRate?.amount * 1 : 0))
-
-        let taxAmount = subtotal * (carrierRate ? 0.06998 : 0.16)
+    
+        let taxAmount = purchaseType == 'invoice' ? subtotal * (carrierRate ? 0.06998 : 0.16) : 0
 
         const paymentModel = await Payment.create({
             user: req?.user?._id,   
@@ -374,6 +377,30 @@ export class CheckoutController {
             carrierRate,
             carrierRateAmount: carrierRate?.amount ?? undefined
         })
+
+        if(payment != 'pagoMovil' && payment != 'zelle' && payment != 'giftCard'){
+
+            let allTimePaymentTotal = taxAmount + finalTotal
+            allTimePaymentTotal = allTimePaymentTotal * 1 + (carrierRate?.amount ? parseFloat(carrierRate?.amount) : 0) * 1
+
+            if(payment == 'banesco'){
+                allTimePaymentTotal = allTimePaymentTotal/dolarPrice.price
+            }
+
+            const allTimePaymentFind = await AllTimePayment.findOne({})
+            if(!allTimePaymentFind){
+                await AllTimePayment.create({
+                    amount: allTimePaymentTotal
+                })
+            }else{
+
+                const totalToUpdate = (allTimePaymentFind.amount ?? 0) * 1 + allTimePaymentTotal * 1
+                await AllTimePayment.findByIdAndUpdate(allTimePaymentFind._id, {
+                    amount: totalToUpdate
+                })
+            }
+
+        }
 
         return paymentModel
 
@@ -412,6 +439,30 @@ export class CheckoutController {
                 const sizeModel = cart.size.name
                 const colorModel = cart.color.name
 
+                const searchProduct:any = await AllTimePurchase.findOne({
+                    product: cart.productId,
+                    size: cart.size._id,
+                    color: cart.color._id,
+                })
+
+                if(!searchProduct){
+                    
+                    console.log(cart)
+                    console.log(cart.productId, cart.size._id, cart.color._id)
+
+
+                    await AllTimePurchase.create({
+                        product: cart.productId,
+                        size: cart.size._id,
+                        color: cart.color._id,
+                        amount: cart.quantity
+                    })
+                }else{
+                    console.log('si existe')
+                    searchProduct.amount = searchProduct.amount + cart.quantity
+                    await searchProduct.save()
+                }
+                
                 invoiceProducts.push(
                     {
                         invoice: invoice._id,

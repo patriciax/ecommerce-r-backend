@@ -4,110 +4,16 @@ import { DolarPrice } from '../models/dolarPrice.schema'
 import { User } from '../models/user.schema'
 import { Role } from '../models/role.schema'
 import { Invoice } from '../models/invoice.schema'
+import { AllTimePayment } from '../models/allTimePayments'
+import { AllTimePurchase } from '../models/allTimePurchases.schema'
 
 export class StatisticController {
 
-    private bolivars = async () => {
-        const bolivarsRevenuesTotal:any = await Payment.aggregate(
-            [
-                {
-                    $match: { 
-                        type: { 
-                            $in : ["pagoMovil", "banesco"]
-                        }
-                    }
-                },
-                {
-                    $group: { 
-                        _id: null, 
-                        totalQuantity: { $sum: '$total' }
-                    }
-                }
-            ]
+    private totalPayments = async () => {
+        
+        const allPayments = await AllTimePayment.findOne({})
+        return allPayments?.amount ?? 0
 
-        )
-
-        const bolivarsRevenuesTaxAmount:any = await Payment.aggregate(
-            [
-                {
-                    $match: { 
-                        type: { 
-                            $in : ["pagoMovil", "banesco"]
-                        } 
-                    }
-                },
-                {
-                    $group: { 
-                        _id: null, 
-                        totalQuantity: { $sum: '$taxAmount' } 
-                    }
-                }
-            ]
-
-        )
-
-        return bolivarsRevenuesTotal[0]?.totalQuantity + bolivarsRevenuesTaxAmount[0]?.totalQuantity 
-    }
-
-    private dolars = async () => {
-        const dolarsRevenuesTotal:any = await Payment.aggregate(
-            [
-                {
-                    $match: { 
-                        type: { 
-                            $in : ["paypal", "zelle", "giftCard"]
-                        } 
-                    }
-                },
-                {
-                    $group: { 
-                        _id: null, 
-                        totalQuantity: { $sum: '$total' }
-                    }
-                }
-            ]
-
-        )
-
-        const dolarsRevenuesTaxAmount:any = await Payment.aggregate(
-            [
-                {
-                    $match: { 
-                        type: { 
-                            $in : ["paypal", "zelle", "giftCard"]
-                        } 
-                    }
-                },
-                {
-                    $group: { 
-                        _id: null, 
-                        totalQuantity: { $sum: '$taxAmount' } 
-                    }
-                }
-            ]
-
-        )
-
-        const dolarsRevenuesCarrier:any = await Payment.aggregate(
-            [
-                {
-                    $match: { 
-                        type: { 
-                            $in : ["paypal", "zelle", "giftCard"]
-                        } 
-                    }
-                },
-                {
-                    $group: { 
-                        _id: null, 
-                        totalQuantity: { $sum: '$carrierRateAmount' } 
-                    }
-                }
-            ]
-
-        )
-
-        return dolarsRevenuesTotal[0]?.totalQuantity + dolarsRevenuesTaxAmount[0]?.totalQuantity + dolarsRevenuesCarrier[0]?.totalQuantity
     }
 
     private todayBolivars = async () => {
@@ -156,7 +62,7 @@ export class StatisticController {
             }
         )
 
-        return dolarsRevenue.reduce((acc: number, payment: any) => acc + payment.total + payment.taxAmount + payment.createRate.amount, 0)
+        return dolarsRevenue.reduce((acc: number, payment: any) => acc + payment.total + payment.taxAmount + (payment.createRate ? payment?.createRate?.amount * 1 : 0), 0)
 
     }
 
@@ -182,32 +88,40 @@ export class StatisticController {
 
     }
 
-    public todayRevenue = async() => {
+    public mostPurchasedProducts = async () => {
 
+        const products = await AllTimePurchase.find().sort({amount: -1}).limit(10).populate("product").populate("size").populate("color")
+        return products
+    }
 
+    public lessPurchasedProducts = async () => {
 
+        const products = await AllTimePurchase.find().sort("amount").limit(10).populate("product").populate("size").populate("color")
+        return products
     }
 
     public statistic = async (req:Request, res:Response) => {
 
-        const dolarPrice = await DolarPrice.findOne()
-        const totalBolivars = await this.bolivars()
-        const totalBolivarsDolarPrice = totalBolivars / (dolarPrice?.price ?? 0)
+        const dolarPrice = await DolarPrice.findOne({})
 
-        const totalDolars = await this.dolars()
+        const totalPaymentsAmount = await this.totalPayments()        
         const clients = await this.getClients()
         const latestSales = await this.latestSales()
         const todayBolivars = await this.todayBolivars()
         const todayDolars = await this.todayDolars()
-        
-        //console.log(totalBolivarsDolarPrice + totalDolars)
-        //console.log(clients)
-        //console.log(latestSales)
-        console.log(todayBolivars)
-        //await Payment.find({"type" : { $in : ["pagoMovil", "banesco"]}}).
+        const mostPurchasedProducts = await this.mostPurchasedProducts()
+        const lessPurchasedProducts = await this.lessPurchasedProducts()
+        const bolivarDolar = todayBolivars / (dolarPrice?.price ?? 1)
+
+        const todayPurchase = bolivarDolar + todayDolars
 
         res.status(200).json({
-
+            totalPayment: totalPaymentsAmount,
+            clients,
+            latestSales,
+            todayPurchase,
+            mostPurchasedProducts,
+            lessPurchasedProducts
         })
 
     }

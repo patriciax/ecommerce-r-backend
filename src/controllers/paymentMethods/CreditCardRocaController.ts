@@ -80,6 +80,7 @@ export class CreditCardRocaController {
             else if(req.body.paymentMethod === 'paypal-create-order'){
                 const paypalProcess = new PaypalController()
                 const order = await paypalProcess.createOrderCard(req.body.card.total)
+
                 return res.status(200).json({
                     order,
                     "transactionOrder": tracnsactionOrder
