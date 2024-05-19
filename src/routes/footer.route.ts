@@ -5,8 +5,8 @@ import { authMiddleware } from "../middlewares/auth.middleware";
 const router = Router();
 const footerController = new FooterController();
 
+router.get('/footer-front-items', footerController.getItemStore)
 router.get('/footer-front/item/:slug', footerController.getItemBySlug)
-router.get('/footer-front', footerController.getItemStore)
 
 router.post('/', authMiddleware, footerController.createFooter)
 router.get('/item/:footer', authMiddleware, footerController.getItem)

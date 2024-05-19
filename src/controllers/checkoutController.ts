@@ -19,6 +19,7 @@ import { Zelle } from "../models/zelle.schema";
 import { ShipmentController } from "./shipmentController";
 import { AllTimePayment } from "../models/allTimePayments";
 import { AllTimePurchase } from "../models/allTimePurchases.schema";
+import { User } from "../models/user.schema";
 
 declare global {
     namespace Express {
@@ -364,6 +365,7 @@ export class CheckoutController {
         const paymentModel = await Payment.create({
             user: req?.user?._id,   
             name: userName,
+            identification: req.body.identification,
             email: userEmail,
             phone: userPhone,
             transactionId: order,
@@ -415,6 +417,12 @@ export class CheckoutController {
         userName = req?.user ? req?.user.name : req.body.name
         userEmail = req?.user ? req?.user.email : req.body.email
         userPhone = req?.user ? req?.user.phone : req.body.phone
+
+        if(req?.user){
+            await User.findByIdAndUpdate(req?.user?._id, {
+                identification: req.body.identification,
+            })
+        }
         
         const invoice = await Invoice.create({
             user: req?.user?._id,

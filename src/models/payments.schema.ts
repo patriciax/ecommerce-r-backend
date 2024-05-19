@@ -14,6 +14,9 @@ const paymentSchema = new Schema({
     phone: {
         type: String
     },
+    identification:{
+        type: String
+    },
     transactionId:{
         type:String
     },

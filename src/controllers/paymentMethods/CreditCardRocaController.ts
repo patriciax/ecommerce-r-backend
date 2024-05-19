@@ -337,7 +337,7 @@ export class CreditCardRocaController {
 
             const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
        
-            const creditCardRoca = await CreditCardRoca.find({ email: data.email })
+            const creditCardRoca = await CreditCardRoca.find({ email: data.emailCard })
             if(!creditCardRoca){
                 return {
                     status: 'fail',
