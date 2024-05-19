@@ -466,7 +466,6 @@ export class CheckoutController {
                         amount: cart.quantity
                     })
                 }else{
-                    console.log('si existe')
                     searchProduct.amount = searchProduct.amount + cart.quantity
                     await searchProduct.save()
                 }

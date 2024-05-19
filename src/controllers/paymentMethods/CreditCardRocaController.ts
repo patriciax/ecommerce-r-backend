@@ -332,10 +332,16 @@ export class CreditCardRocaController {
         }
     }
 
-    public makePayment = async(data:any, cart:any) => {
+    public makePayment = async(data:any, cart:any, carrierRate:any = null) => {
         try{
 
+            
             const total = cart.reduce((acc:number, item:any) => acc + (item.priceDiscount || item.price) * item.quantity, 0)
+
+            
+            const subtotal = (total + (carrierRate ? carrierRate?.amount * 1 : 0))
+            let taxAmount = subtotal * (carrierRate ? 0.06998 : 0.16)
+            const finalTotal = taxAmount * 1 + subtotal * 1
        
             const creditCardRoca = await CreditCardRoca.find({ email: data.emailCard })
             if(!creditCardRoca){
@@ -369,17 +375,16 @@ export class CreditCardRocaController {
                 }
             }
 
-            if(credits < total){
+            if(credits < finalTotal){
                 return {
                     status: 'fail',
                     message: 'INSUFFICIENT_CREDITS'
                 }
             }
 
-            const creditsToUpdate = credits - total
+            const creditsToUpdate = credits - finalTotal
             const findCard = await CreditCardRoca.findByIdAndUpdate(cardId, {credit: creditsToUpdate}, { overwriteDiscriminatorKey: true, new: true })
- 
-            
+
             return {
                 status: 'success',
                 message: 'PAYMENT_SUCCESS',
