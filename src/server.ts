@@ -24,6 +24,8 @@ import zelleRoute from './routes/zelle.route'
 import shipmentRoute from './routes/shipment.route'
 import footerRoute from './routes/footer.route'
 import statisticRoute from './routes/statistic.route'
+import mercantilRoute from './routes/mercantil.route'
+import testingEmailRoute from './routes/testing.route'
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -77,6 +79,8 @@ app.use("/api/v1/zelle", zelleRoute)
 app.use("/api/v1/shipment", shipmentRoute)
 app.use("/api/v1/footers", footerRoute)
 app.use("/api/v1/statistics", statisticRoute)
+app.use("/api/v1/mercantil", mercantilRoute)
+app.use("/api/v1/testing-email", testingEmailRoute)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({

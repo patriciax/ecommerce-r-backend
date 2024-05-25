@@ -20,6 +20,7 @@ import { ShipmentController } from "./shipmentController";
 import { AllTimePayment } from "../models/allTimePayments";
 import { AllTimePurchase } from "../models/allTimePurchases.schema";
 import { User } from "../models/user.schema";
+import { MercantilController } from "./paymentMethods/MercantilController";
 
 declare global {
     namespace Express {
@@ -158,6 +159,9 @@ export class CheckoutController {
                 const ip = req.ip.split(':').pop()
                 req.body.banescoData.ip = ip
 
+                tracnsactionOrder = await this.generateInvoiceOrder()
+                req.body.transactionOrder = tracnsactionOrder
+
                 const banescoProcess = new BanescoController()
                 const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national')
                 const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected")
@@ -184,6 +188,53 @@ export class CheckoutController {
                 })
 
             }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+            }
+
+        }
+
+        else if(req.body.paymentMethod === 'mercantil'){
+            try{
+                
+                const ip = req.ip?.split(':')?.pop() ?? ''
+                req.body.mercantilData.ip = ip
+
+                tracnsactionOrder = await this.generateInvoiceOrder()
+                req.body.mercantilData.transactionOrder = tracnsactionOrder.substring(0, 12)
+
+                const mercantilProcess = new MercantilController()
+                const response = await mercantilProcess.makePayment(req.body.mercantilData, req.body.carts, 'national')
+
+                console.log(response)
+
+                const payment = await this.generatePayment(req, 'mercantil', tracnsactionOrder, response.success ? "approved" : "rejected")
+                
+                if(response.success){
+
+                    const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                    this.clearCarts(req)
+
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    })
+                }
+
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+
+            }catch(error){
+                console.log(error)
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
@@ -357,7 +408,7 @@ export class CheckoutController {
         else if(purchaseType == 'giftCard')
             total = req.body.card.total
         
-        const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * dolarPrice?.price : total
+        const finalTotal = payment == 'banesco' || payment == 'pagoMovil' || payment == 'mercantil' ? total * dolarPrice?.price : total
         const subtotal = (finalTotal + (carrierRate ? carrierRate?.amount * 1 : 0))
     
         let taxAmount = purchaseType == 'invoice' ? subtotal * (carrierRate ? 0.06998 : 0.16) : 0
@@ -385,7 +436,7 @@ export class CheckoutController {
             let allTimePaymentTotal = taxAmount + finalTotal
             allTimePaymentTotal = allTimePaymentTotal * 1 + (carrierRate?.amount ? parseFloat(carrierRate?.amount) : 0) * 1
 
-            if(payment == 'banesco'){
+            if(payment == 'banesco' || payment == 'mercantil'){
                 allTimePaymentTotal = allTimePaymentTotal/dolarPrice.price
             }
 

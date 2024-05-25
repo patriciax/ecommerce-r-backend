@@ -22,7 +22,7 @@ const paymentSchema = new Schema({
     },
     type:{
         type:String,
-        enum:['card','paypal','appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard', 'pagoMovil'],
+        enum:['card','paypal','appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard', 'pagoMovil', "mercantil"],
     },
     total: {
         type: Number

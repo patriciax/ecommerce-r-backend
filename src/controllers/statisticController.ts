@@ -27,7 +27,7 @@ export class StatisticController {
         const bolivarsRevenues:any = await Payment.find(
             {
                 type: { 
-                    $in : ["pagoMovil", "banesco"]
+                    $in : ["pagoMovil", "banesco", "mercantil"]
                 },
                 created: {
                     $gte: startOfDay, 
