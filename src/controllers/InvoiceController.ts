@@ -5,6 +5,8 @@ import { EmailController } from "./emailController";
 import { Payment } from "../models/payments.schema";
 import { InvoiceProduct } from "../models/invoiceProduct.schema";
 import { Product } from "../models/product.schema";
+import { ShipmentController } from "./shipmentController";
+import { AllTimePayment } from "../models/allTimePayments";
 
 export class InvoiceController {
 
@@ -124,10 +126,36 @@ export class InvoiceController {
                     "reference": invoice.pagoMovilReference
                 })
 
+            }else{
+
+          
+                let allTimePaymentTotal = payment.taxAmount + payment.total
+                allTimePaymentTotal = allTimePaymentTotal * 1 + (payment?.carrierRate?.amount ? parseFloat(payment?.carrierRate?.amount) : 0) * 1
+                
+                const allTimePaymentFind = await AllTimePayment.findOne({})
+                if(!allTimePaymentFind){
+                    await AllTimePayment.create({
+                        amount: allTimePaymentTotal
+                    })
+                }else{
+                    
+                    const totalToUpdate = (allTimePaymentFind.amount ?? 0) * 1 + allTimePaymentTotal * 1
+                    await AllTimePayment.findByIdAndUpdate(allTimePaymentFind._id, {
+                        amount: totalToUpdate
+                    })
+                }
+                if(payment.carrierRate){
+                    const shipmentController = new ShipmentController()
+                    const response = await shipmentController.createShipment(payment.carrierRate.objectId)
+
+                    invoice.shippingTracking = response.trackingNumber
+                }
+                
+                await invoice.save()
+
             }
 
             await payment.save();
-
             return res.status(200).json({
                 status: 'success',
                 data: {
@@ -136,7 +164,7 @@ export class InvoiceController {
             })
 
         }catch(error){
-            
+            console.log(error)
             return error
         }
 

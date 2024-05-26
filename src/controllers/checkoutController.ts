@@ -17,6 +17,10 @@ import { PagoMovil } from "../models/pagoMovil.schema";
 import { ZelleController } from "./paymentMethods/ZelleController";
 import { Zelle } from "../models/zelle.schema";
 import { ShipmentController } from "./shipmentController";
+import { AllTimePayment } from "../models/allTimePayments";
+import { AllTimePurchase } from "../models/allTimePurchases.schema";
+import { User } from "../models/user.schema";
+import { MercantilController } from "./paymentMethods/MercantilController";
 
 declare global {
     namespace Express {
@@ -60,7 +64,7 @@ export class CheckoutController {
                 const creditCardRocaController = new CreditCardRocaController()
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
 
-                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected")
+                const payment:any = await this.generatePayment(req, 'giftCard', tracnsactionOrder, response?.status == 'success' ? "approved" : "rejected", 'invoice', req.body.carrierRate)
                 if(response?.status == 'success'){
 
                     let trackingNumber = ''
@@ -112,7 +116,7 @@ export class CheckoutController {
                 const paypalProcess = new PaypalController()
                 const response = await paypalProcess.captureOrder(req.body.orderId)
 
-                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected")
+                const payment = await this.generatePayment(req, 'paypal', req.body.orderId, response?.status == 'COMPLETED' ? "approved" : "rejected", 'invoice', req.body.carrierRate)
 
                 if(response.status == 'COMPLETED'){
                     let trackingNumber = ""
@@ -141,6 +145,7 @@ export class CheckoutController {
                 })
 
             }catch(error){
+       
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
@@ -153,6 +158,9 @@ export class CheckoutController {
 
                 const ip = req.ip.split(':').pop()
                 req.body.banescoData.ip = ip
+
+                tracnsactionOrder = await this.generateInvoiceOrder()
+                req.body.transactionOrder = tracnsactionOrder
 
                 const banescoProcess = new BanescoController()
                 const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national')
@@ -180,6 +188,56 @@ export class CheckoutController {
                 })
 
             }catch(error){
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+            }
+
+        }
+
+        else if(req.body.paymentMethod === 'mercantil'){
+            try{
+                
+                const ip = req.ip?.split(':')?.pop() ?? ''
+                req.body.mercantilData.ip = ip
+
+                tracnsactionOrder = await this.generateInvoiceOrder()
+                req.body.mercantilData.transactionOrder = tracnsactionOrder.substring(0, 12)
+
+                const mercantilProcess = new MercantilController()
+                const response = await mercantilProcess.makePayment(req.body.mercantilData, req.body.carts, 'national')
+
+                const payment = await this.generatePayment(req, 'mercantil', tracnsactionOrder, response?.transaction_response?.trx_status == 'approved' ? "approved" : "rejected")
+
+                console.log(response)
+
+                if(response?.transaction_response?.trx_status == 'approved'){
+                    
+                    const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
+
+                    this.clearCarts(req)
+
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'PAYMENT_SUCCESS',
+                        data: {
+                            invoice,
+                            cart: req.body.carts
+                        }
+                    })
+                    
+                }
+
+                
+
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'PAYMENT_FAILED'
+                })
+
+            }catch(error){
+                console.log(error)
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
@@ -225,7 +283,9 @@ export class CheckoutController {
                 const zelleProcess = new ZelleController()
                 const response = await zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts)
 
-                const payment = await this.generatePayment(req, 'zelle', tracnsactionOrder, response)
+                const carrierRate = req.body.carrierRate ? req.body.carrierRate : null
+
+                const payment = await this.generatePayment(req, 'zelle', tracnsactionOrder, response, 'invoice', carrierRate)
                 
                 const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
 
@@ -325,7 +385,7 @@ export class CheckoutController {
         }
     }
 
-    public generatePayment = async(req:Request, payment:string, order:string, paymentStatus:any, purchaseType:string = 'invoice') => {
+    public generatePayment = async(req:Request, payment:string, order:string, paymentStatus:any, purchaseType:string = 'invoice', carrierRate:any = null) => {
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -351,11 +411,15 @@ export class CheckoutController {
         else if(purchaseType == 'giftCard')
             total = req.body.card.total
         
-        const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * dolarPrice?.price : total
+        const finalTotal = payment == 'banesco' || payment == 'pagoMovil' || payment == 'mercantil' ? total * dolarPrice?.price : total
+        const subtotal = (finalTotal + (carrierRate ? carrierRate?.amount * 1 : 0))
+    
+        let taxAmount = purchaseType == 'invoice' ? subtotal * (carrierRate ? 0.06998 : 0.16) : 0
 
         const paymentModel = await Payment.create({
             user: req?.user?._id,   
             name: userName,
+            identification: req.body.identification,
             email: userEmail,
             phone: userPhone,
             transactionId: order,
@@ -364,8 +428,35 @@ export class CheckoutController {
             total: finalTotal,
             bank: payment == 'pagoMovil' ? pagoMovilData[0]?.bank : undefined,
             zelleEmail: payment == 'zelle' ? zelleData[0]?.email : undefined,
-            purchaseType
+            purchaseType,
+            taxAmount,
+            carrierRate,
+            carrierRateAmount: carrierRate?.amount ?? undefined
         })
+
+        if(payment != 'pagoMovil' && payment != 'zelle' && payment != 'giftCard'){
+
+            let allTimePaymentTotal = taxAmount + finalTotal
+            allTimePaymentTotal = allTimePaymentTotal * 1 + (carrierRate?.amount ? parseFloat(carrierRate?.amount) : 0) * 1
+
+            if(payment == 'banesco' || payment == 'mercantil'){
+                allTimePaymentTotal = allTimePaymentTotal/dolarPrice.price
+            }
+
+            const allTimePaymentFind = await AllTimePayment.findOne({})
+            if(!allTimePaymentFind){
+                await AllTimePayment.create({
+                    amount: allTimePaymentTotal
+                })
+            }else{
+
+                const totalToUpdate = (allTimePaymentFind.amount ?? 0) * 1 + allTimePaymentTotal * 1
+                await AllTimePayment.findByIdAndUpdate(allTimePaymentFind._id, {
+                    amount: totalToUpdate
+                })
+            }
+
+        }
 
         return paymentModel
 
@@ -380,6 +471,12 @@ export class CheckoutController {
         userName = req?.user ? req?.user.name : req.body.name
         userEmail = req?.user ? req?.user.email : req.body.email
         userPhone = req?.user ? req?.user.phone : req.body.phone
+
+        if(req?.user){
+            await User.findByIdAndUpdate(req?.user?._id, {
+                identification: req.body.identification,
+            })
+        }
         
         const invoice = await Invoice.create({
             user: req?.user?._id,
@@ -404,6 +501,29 @@ export class CheckoutController {
                 const sizeModel = cart.size.name
                 const colorModel = cart.color.name
 
+                const searchProduct:any = await AllTimePurchase.findOne({
+                    product: cart.productId,
+                    size: cart.size._id,
+                    color: cart.color._id,
+                })
+
+                if(!searchProduct){
+                    
+                    console.log(cart)
+                    console.log(cart.productId, cart.size._id, cart.color._id)
+
+
+                    await AllTimePurchase.create({
+                        product: cart.productId,
+                        size: cart.size._id,
+                        color: cart.color._id,
+                        amount: cart.quantity
+                    })
+                }else{
+                    searchProduct.amount = searchProduct.amount + cart.quantity
+                    await searchProduct.save()
+                }
+                
                 invoiceProducts.push(
                     {
                         invoice: invoice._id,
