@@ -208,12 +208,12 @@ export class CheckoutController {
                 const mercantilProcess = new MercantilController()
                 const response = await mercantilProcess.makePayment(req.body.mercantilData, req.body.carts, 'national')
 
+                const payment = await this.generatePayment(req, 'mercantil', tracnsactionOrder, response?.transaction_response?.trx_status == 'approved' ? "approved" : "rejected")
+
                 console.log(response)
 
-                const payment = await this.generatePayment(req, 'mercantil', tracnsactionOrder, response.success ? "approved" : "rejected")
-                
-                if(response.success){
-
+                if(response?.transaction_response?.trx_status == 'approved'){
+                    
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
 
                     this.clearCarts(req)
@@ -226,7 +226,10 @@ export class CheckoutController {
                             cart: req.body.carts
                         }
                     })
+                    
                 }
+
+                
 
                 return res.status(400).json({
                     status: 'fail',
