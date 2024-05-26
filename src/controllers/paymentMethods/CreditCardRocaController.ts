@@ -47,7 +47,7 @@ export class CreditCardRocaController {
                     const total = req.body.card.total * dolarPrice.price
 
                     const response = await banescoProcess.makePaymentGiftCard(req.body.banescoData, total)
-
+                    
                     const payment = await checkoutController.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected", 'giftCard')
                     if(response.success){
                         const invoice = await checkoutController.generateInvoice(req, tracnsactionOrder, payment, 'giftCard')
@@ -70,6 +70,7 @@ export class CreditCardRocaController {
                     })
 
                 }catch(error){
+                    
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'

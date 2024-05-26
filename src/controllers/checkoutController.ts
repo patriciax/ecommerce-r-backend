@@ -60,7 +60,7 @@ export class CheckoutController {
 
         if(req.body.paymentMethod === 'giftCard'){
             try{
-
+                tracnsactionOrder = await this.generateInvoiceOrder()
                 const creditCardRocaController = new CreditCardRocaController()
                 const response = await creditCardRocaController.makePayment(req.body, req.body.carts)
 
@@ -73,7 +73,7 @@ export class CheckoutController {
                         trackingNumber = shippingResponse.trackingNumber
                     }
 
-                    const invoice = await this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber)
+                    const invoice = await this.generateInvoice(req, tracnsactionOrder, payment, 'invoice', trackingNumber)
 
                     this.clearCarts(req)
 
