@@ -24,6 +24,9 @@ const UserSchema = new mongoose_1.Schema({
     lastname: {
         type: String
     },
+    identification: {
+        type: String
+    },
     email: {
         type: String,
         required: true,

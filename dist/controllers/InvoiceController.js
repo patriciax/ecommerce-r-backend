@@ -16,6 +16,8 @@ const emailController_1 = require("./emailController");
 const payments_schema_1 = require("../models/payments.schema");
 const invoiceProduct_schema_1 = require("../models/invoiceProduct.schema");
 const product_schema_1 = require("../models/product.schema");
+const shipmentController_1 = require("./shipmentController");
+const allTimePayments_1 = require("../models/allTimePayments");
 class InvoiceController {
     constructor() {
         this.listInvoices = (req, res) => __awaiter(this, void 0, void 0, function* () {
@@ -70,7 +72,7 @@ class InvoiceController {
             }
         });
         this.updateInvoiceStatus = (req, res) => __awaiter(this, void 0, void 0, function* () {
-            var _c;
+            var _c, _d, _e, _f;
             try {
                 const invoice = yield invoice_schema_1.Invoice.findById(req.params.invoice);
                 if (!invoice) {
@@ -111,6 +113,28 @@ class InvoiceController {
                         "reference": invoice.pagoMovilReference
                     });
                 }
+                else {
+                    let allTimePaymentTotal = payment.taxAmount + payment.total;
+                    allTimePaymentTotal = allTimePaymentTotal * 1 + (((_d = payment === null || payment === void 0 ? void 0 : payment.carrierRate) === null || _d === void 0 ? void 0 : _d.amount) ? parseFloat((_e = payment === null || payment === void 0 ? void 0 : payment.carrierRate) === null || _e === void 0 ? void 0 : _e.amount) : 0) * 1;
+                    const allTimePaymentFind = yield allTimePayments_1.AllTimePayment.findOne({});
+                    if (!allTimePaymentFind) {
+                        yield allTimePayments_1.AllTimePayment.create({
+                            amount: allTimePaymentTotal
+                        });
+                    }
+                    else {
+                        const totalToUpdate = ((_f = allTimePaymentFind.amount) !== null && _f !== void 0 ? _f : 0) * 1 + allTimePaymentTotal * 1;
+                        yield allTimePayments_1.AllTimePayment.findByIdAndUpdate(allTimePaymentFind._id, {
+                            amount: totalToUpdate
+                        });
+                    }
+                    if (payment.carrierRate) {
+                        const shipmentController = new shipmentController_1.ShipmentController();
+                        const response = yield shipmentController.createShipment(payment.carrierRate.objectId);
+                        invoice.shippingTracking = response.trackingNumber;
+                    }
+                    yield invoice.save();
+                }
                 yield payment.save();
                 return res.status(200).json({
                     status: 'success',
@@ -120,6 +144,7 @@ class InvoiceController {
                 });
             }
             catch (error) {
+                console.log(error);
                 return error;
             }
         });

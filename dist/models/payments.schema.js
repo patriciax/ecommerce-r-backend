@@ -16,12 +16,15 @@ const paymentSchema = new mongoose_1.Schema({
     phone: {
         type: String
     },
+    identification: {
+        type: String
+    },
     transactionId: {
         type: String
     },
     type: {
         type: String,
-        enum: ['card', 'paypal', 'appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard', 'pagoMovil'],
+        enum: ['card', 'paypal', 'appelpay', 'zelle', 'mercantil', 'banesco', 'giftCard', 'pagoMovil', "mercantil"],
     },
     total: {
         type: Number
@@ -32,6 +35,15 @@ const paymentSchema = new mongoose_1.Schema({
     purchaseType: {
         type: String,
         enum: ['invoice', 'giftCard'],
+    },
+    taxAmount: {
+        type: Object
+    },
+    carrierRate: {
+        type: Object,
+    },
+    carrierRateAmount: {
+        type: Number
     },
     zelleEmail: {
         type: String

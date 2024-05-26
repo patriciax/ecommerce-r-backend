@@ -27,6 +27,10 @@ const pagoMovil_schema_1 = require("../models/pagoMovil.schema");
 const ZelleController_1 = require("./paymentMethods/ZelleController");
 const zelle_schema_1 = require("../models/zelle.schema");
 const shipmentController_1 = require("./shipmentController");
+const allTimePayments_1 = require("../models/allTimePayments");
+const allTimePurchases_schema_1 = require("../models/allTimePurchases.schema");
+const user_schema_1 = require("../models/user.schema");
+const MercantilController_1 = require("./paymentMethods/MercantilController");
 class CheckoutController {
     constructor() {
         this.paymentMethods = [
@@ -38,6 +42,7 @@ class CheckoutController {
             'banesco'
         ];
         this.paymentProcess = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e;
             const shipmentController = new shipmentController_1.ShipmentController();
             let tracnsactionOrder = '';
             if ((req.body.paymentMethod !== 'paypal-approve-order')) {
@@ -51,7 +56,7 @@ class CheckoutController {
                 try {
                     const creditCardRocaController = new CreditCardRocaController_1.CreditCardRocaController();
                     const response = yield creditCardRocaController.makePayment(req.body, req.body.carts);
-                    const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, (response === null || response === void 0 ? void 0 : response.status) == 'success' ? "approved" : "rejected");
+                    const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, (response === null || response === void 0 ? void 0 : response.status) == 'success' ? "approved" : "rejected", 'invoice', req.body.carrierRate);
                     if ((response === null || response === void 0 ? void 0 : response.status) == 'success') {
                         let trackingNumber = '';
                         if (req.body.carrierRate) {
@@ -94,7 +99,7 @@ class CheckoutController {
                 try {
                     const paypalProcess = new PaypalController_1.PaypalController();
                     const response = yield paypalProcess.captureOrder(req.body.orderId);
-                    const payment = yield this.generatePayment(req, 'paypal', req.body.orderId, (response === null || response === void 0 ? void 0 : response.status) == 'COMPLETED' ? "approved" : "rejected");
+                    const payment = yield this.generatePayment(req, 'paypal', req.body.orderId, (response === null || response === void 0 ? void 0 : response.status) == 'COMPLETED' ? "approved" : "rejected", 'invoice', req.body.carrierRate);
                     if (response.status == 'COMPLETED') {
                         let trackingNumber = "";
                         if (req.body.carrierRate) {
@@ -128,6 +133,8 @@ class CheckoutController {
                 try {
                     const ip = req.ip.split(':').pop();
                     req.body.banescoData.ip = ip;
+                    tracnsactionOrder = yield this.generateInvoiceOrder();
+                    req.body.transactionOrder = tracnsactionOrder;
                     const banescoProcess = new BanescoController_1.BanescoController();
                     const response = yield banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national');
                     const payment = yield this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected");
@@ -149,6 +156,41 @@ class CheckoutController {
                     });
                 }
                 catch (error) {
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+            }
+            else if (req.body.paymentMethod === 'mercantil') {
+                try {
+                    const ip = (_c = (_b = (_a = req.ip) === null || _a === void 0 ? void 0 : _a.split(':')) === null || _b === void 0 ? void 0 : _b.pop()) !== null && _c !== void 0 ? _c : '';
+                    req.body.mercantilData.ip = ip;
+                    tracnsactionOrder = yield this.generateInvoiceOrder();
+                    req.body.mercantilData.transactionOrder = tracnsactionOrder.substring(0, 12);
+                    const mercantilProcess = new MercantilController_1.MercantilController();
+                    const response = yield mercantilProcess.makePayment(req.body.mercantilData, req.body.carts, 'national');
+                    const payment = yield this.generatePayment(req, 'mercantil', tracnsactionOrder, ((_d = response === null || response === void 0 ? void 0 : response.transaction_response) === null || _d === void 0 ? void 0 : _d.trx_status) == 'approved' ? "approved" : "rejected");
+                    console.log(response);
+                    if (((_e = response === null || response === void 0 ? void 0 : response.transaction_response) === null || _e === void 0 ? void 0 : _e.trx_status) == 'approved') {
+                        const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
+                        this.clearCarts(req);
+                        return res.status(200).json({
+                            status: 'success',
+                            message: 'PAYMENT_SUCCESS',
+                            data: {
+                                invoice,
+                                cart: req.body.carts
+                            }
+                        });
+                    }
+                    return res.status(400).json({
+                        status: 'fail',
+                        message: 'PAYMENT_FAILED'
+                    });
+                }
+                catch (error) {
+                    console.log(error);
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'
@@ -182,7 +224,8 @@ class CheckoutController {
                 try {
                     const zelleProcess = new ZelleController_1.ZelleController();
                     const response = yield zelleProcess.makePayment(req.body.pagoMovilData, req.body.carts);
-                    const payment = yield this.generatePayment(req, 'zelle', tracnsactionOrder, response);
+                    const carrierRate = req.body.carrierRate ? req.body.carrierRate : null;
+                    const payment = yield this.generatePayment(req, 'zelle', tracnsactionOrder, response, 'invoice', carrierRate);
                     const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                     this.clearCarts(req);
                     return res.status(200).json({
@@ -259,8 +302,8 @@ class CheckoutController {
                 status: 'success'
             };
         });
-        this.generatePayment = (req, payment, order, paymentStatus, purchaseType = 'invoice') => __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d, _e;
+        this.generatePayment = (req, payment, order, paymentStatus, purchaseType = 'invoice', carrierRate = null) => __awaiter(this, void 0, void 0, function* () {
+            var _f, _g, _h, _j, _k, _l, _m;
             let userName = '';
             let userEmail = '';
             let userPhone = '';
@@ -276,35 +319,65 @@ class CheckoutController {
             let total = 0;
             const dolarPrice = yield dolarPrice_schema_1.DolarPrice.findOne({}).sort({ createdAt: -1 });
             if (purchaseType == 'invoice')
-                total = (_b = (_a = req.body.carts) === null || _a === void 0 ? void 0 : _a.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0)) !== null && _b !== void 0 ? _b : 0;
+                total = (_g = (_f = req.body.carts) === null || _f === void 0 ? void 0 : _f.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0)) !== null && _g !== void 0 ? _g : 0;
             else if (purchaseType == 'giftCard')
                 total = req.body.card.total;
-            const finalTotal = payment == 'banesco' || payment == 'pagoMovil' ? total * (dolarPrice === null || dolarPrice === void 0 ? void 0 : dolarPrice.price) : total;
+            const finalTotal = payment == 'banesco' || payment == 'pagoMovil' || payment == 'mercantil' ? total * (dolarPrice === null || dolarPrice === void 0 ? void 0 : dolarPrice.price) : total;
+            const subtotal = (finalTotal + (carrierRate ? (carrierRate === null || carrierRate === void 0 ? void 0 : carrierRate.amount) * 1 : 0));
+            let taxAmount = purchaseType == 'invoice' ? subtotal * (carrierRate ? 0.06998 : 0.16) : 0;
             const paymentModel = yield payments_schema_1.Payment.create({
-                user: (_c = req === null || req === void 0 ? void 0 : req.user) === null || _c === void 0 ? void 0 : _c._id,
+                user: (_h = req === null || req === void 0 ? void 0 : req.user) === null || _h === void 0 ? void 0 : _h._id,
                 name: userName,
+                identification: req.body.identification,
                 email: userEmail,
                 phone: userPhone,
                 transactionId: order,
                 type: payment,
                 status: payment == 'pagoMovil' || payment == 'zelle' ? 'pending' : paymentStatus,
                 total: finalTotal,
-                bank: payment == 'pagoMovil' ? (_d = pagoMovilData[0]) === null || _d === void 0 ? void 0 : _d.bank : undefined,
-                zelleEmail: payment == 'zelle' ? (_e = zelleData[0]) === null || _e === void 0 ? void 0 : _e.email : undefined,
-                purchaseType
+                bank: payment == 'pagoMovil' ? (_j = pagoMovilData[0]) === null || _j === void 0 ? void 0 : _j.bank : undefined,
+                zelleEmail: payment == 'zelle' ? (_k = zelleData[0]) === null || _k === void 0 ? void 0 : _k.email : undefined,
+                purchaseType,
+                taxAmount,
+                carrierRate,
+                carrierRateAmount: (_l = carrierRate === null || carrierRate === void 0 ? void 0 : carrierRate.amount) !== null && _l !== void 0 ? _l : undefined
             });
+            if (payment != 'pagoMovil' && payment != 'zelle' && payment != 'giftCard') {
+                let allTimePaymentTotal = taxAmount + finalTotal;
+                allTimePaymentTotal = allTimePaymentTotal * 1 + ((carrierRate === null || carrierRate === void 0 ? void 0 : carrierRate.amount) ? parseFloat(carrierRate === null || carrierRate === void 0 ? void 0 : carrierRate.amount) : 0) * 1;
+                if (payment == 'banesco' || payment == 'mercantil') {
+                    allTimePaymentTotal = allTimePaymentTotal / dolarPrice.price;
+                }
+                const allTimePaymentFind = yield allTimePayments_1.AllTimePayment.findOne({});
+                if (!allTimePaymentFind) {
+                    yield allTimePayments_1.AllTimePayment.create({
+                        amount: allTimePaymentTotal
+                    });
+                }
+                else {
+                    const totalToUpdate = ((_m = allTimePaymentFind.amount) !== null && _m !== void 0 ? _m : 0) * 1 + allTimePaymentTotal * 1;
+                    yield allTimePayments_1.AllTimePayment.findByIdAndUpdate(allTimePaymentFind._id, {
+                        amount: totalToUpdate
+                    });
+                }
+            }
             return paymentModel;
         });
         this.generateInvoice = (req, order, paymentModel, purchaseType = 'invoice', trackingNumber = '') => __awaiter(this, void 0, void 0, function* () {
-            var _f, _g, _h, _j, _k, _l, _m;
+            var _o, _p, _q, _r, _s, _t, _u, _v;
             let userName = '';
             let userEmail = '';
             let userPhone = '';
             userName = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.name : req.body.name;
             userEmail = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.email : req.body.email;
             userPhone = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.phone : req.body.phone;
+            if (req === null || req === void 0 ? void 0 : req.user) {
+                yield user_schema_1.User.findByIdAndUpdate((_o = req === null || req === void 0 ? void 0 : req.user) === null || _o === void 0 ? void 0 : _o._id, {
+                    identification: req.body.identification,
+                });
+            }
             const invoice = yield invoice_schema_1.Invoice.create({
-                user: (_f = req === null || req === void 0 ? void 0 : req.user) === null || _f === void 0 ? void 0 : _f._id,
+                user: (_p = req === null || req === void 0 ? void 0 : req.user) === null || _p === void 0 ? void 0 : _p._id,
                 name: userName,
                 email: userEmail,
                 phone: userPhone,
@@ -312,8 +385,8 @@ class CheckoutController {
                 payment: paymentModel._id,
                 carrier: req.body.carrier,
                 purchaseType,
-                pagoMovilReference: (_h = (_g = req.body.pagoMovilData) === null || _g === void 0 ? void 0 : _g.reference) !== null && _h !== void 0 ? _h : undefined,
-                pagoMovilDate: (_k = (_j = req.body.pagoMovilData) === null || _j === void 0 ? void 0 : _j.date) !== null && _k !== void 0 ? _k : undefined,
+                pagoMovilReference: (_r = (_q = req.body.pagoMovilData) === null || _q === void 0 ? void 0 : _q.reference) !== null && _r !== void 0 ? _r : undefined,
+                pagoMovilDate: (_t = (_s = req.body.pagoMovilData) === null || _s === void 0 ? void 0 : _s.date) !== null && _t !== void 0 ? _t : undefined,
                 shippingTracking: trackingNumber !== null && trackingNumber !== void 0 ? trackingNumber : undefined
             });
             if (purchaseType == 'invoice') {
@@ -322,6 +395,25 @@ class CheckoutController {
                     const productModel = cart.name;
                     const sizeModel = cart.size.name;
                     const colorModel = cart.color.name;
+                    const searchProduct = yield allTimePurchases_schema_1.AllTimePurchase.findOne({
+                        product: cart.productId,
+                        size: cart.size._id,
+                        color: cart.color._id,
+                    });
+                    if (!searchProduct) {
+                        console.log(cart);
+                        console.log(cart.productId, cart.size._id, cart.color._id);
+                        yield allTimePurchases_schema_1.AllTimePurchase.create({
+                            product: cart.productId,
+                            size: cart.size._id,
+                            color: cart.color._id,
+                            amount: cart.quantity
+                        });
+                    }
+                    else {
+                        searchProduct.amount = searchProduct.amount + cart.quantity;
+                        yield searchProduct.save();
+                    }
                     invoiceProducts.push({
                         invoice: invoice._id,
                         product: cart.productId,
@@ -334,8 +426,8 @@ class CheckoutController {
                     });
                 }
                 yield invoiceProduct_schema_1.InvoiceProduct.insertMany(invoiceProducts);
-                const receiverEmail = ((_l = req === null || req === void 0 ? void 0 : req.user) === null || _l === void 0 ? void 0 : _l.email) || userEmail;
-                const receiverName = ((_m = req === null || req === void 0 ? void 0 : req.user) === null || _m === void 0 ? void 0 : _m.name) || userName;
+                const receiverEmail = ((_u = req === null || req === void 0 ? void 0 : req.user) === null || _u === void 0 ? void 0 : _u.email) || userEmail;
+                const receiverName = ((_v = req === null || req === void 0 ? void 0 : req.user) === null || _v === void 0 ? void 0 : _v.name) || userName;
                 this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber);
                 const adminEmail = yield adminEmail_schema_1.AdminEmail.findOne();
                 if (adminEmail) {
@@ -365,8 +457,8 @@ class CheckoutController {
             });
         });
         this.clearCarts = (req) => __awaiter(this, void 0, void 0, function* () {
-            var _o;
-            yield cart_schema_1.Cart.deleteMany({ user: (_o = req === null || req === void 0 ? void 0 : req.user) === null || _o === void 0 ? void 0 : _o._id });
+            var _w;
+            yield cart_schema_1.Cart.deleteMany({ user: (_w = req === null || req === void 0 ? void 0 : req.user) === null || _w === void 0 ? void 0 : _w._id });
         });
     }
 }

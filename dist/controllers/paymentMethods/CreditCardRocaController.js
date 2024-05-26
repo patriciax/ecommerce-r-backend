@@ -282,10 +282,13 @@ class CreditCardRocaController {
                 };
             }
         });
-        this.makePayment = (data, cart) => __awaiter(this, void 0, void 0, function* () {
+        this.makePayment = (data, cart, carrierRate = null) => __awaiter(this, void 0, void 0, function* () {
             try {
                 const total = cart.reduce((acc, item) => acc + (item.priceDiscount || item.price) * item.quantity, 0);
-                const creditCardRoca = yield creditCardRoca_schema_1.CreditCardRoca.find({ email: data.email });
+                const subtotal = (total + (carrierRate ? (carrierRate === null || carrierRate === void 0 ? void 0 : carrierRate.amount) * 1 : 0));
+                let taxAmount = subtotal * (carrierRate ? 0.06998 : 0.16);
+                const finalTotal = taxAmount * 1 + subtotal * 1;
+                const creditCardRoca = yield creditCardRoca_schema_1.CreditCardRoca.find({ email: data.emailCard });
                 if (!creditCardRoca) {
                     return {
                         status: 'fail',
@@ -311,13 +314,13 @@ class CreditCardRocaController {
                         message: 'CREDIT_CARD_NOT_FOUND'
                     };
                 }
-                if (credits < total) {
+                if (credits < finalTotal) {
                     return {
                         status: 'fail',
                         message: 'INSUFFICIENT_CREDITS'
                     };
                 }
-                const creditsToUpdate = credits - total;
+                const creditsToUpdate = credits - finalTotal;
                 const findCard = yield creditCardRoca_schema_1.CreditCardRoca.findByIdAndUpdate(cardId, { credit: creditsToUpdate }, { overwriteDiscriminatorKey: true, new: true });
                 return {
                     status: 'success',

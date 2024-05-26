@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const footerController_1 = require("../controllers/footerController");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+const footerController = new footerController_1.FooterController();
+router.get('/footer-front-items', footerController.getItemStore);
+router.get('/footer-front/item/:slug', footerController.getItemBySlug);
+router.post('/', auth_middleware_1.authMiddleware, footerController.createFooter);
+router.get('/item/:footer', auth_middleware_1.authMiddleware, footerController.getItem);
+router.get('/:section', auth_middleware_1.authMiddleware, footerController.list);
+router.delete('/:footer', auth_middleware_1.authMiddleware, footerController.deleteItem);
+router.patch('/:footer', auth_middleware_1.authMiddleware, footerController.updateItem);
+exports.default = router;

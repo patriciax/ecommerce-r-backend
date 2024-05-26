@@ -26,6 +26,10 @@ const favorite_route_1 = __importDefault(require("./routes/favorite.route"));
 const pagomovil_route_1 = __importDefault(require("./routes/pagomovil.route"));
 const zelle_route_1 = __importDefault(require("./routes/zelle.route"));
 const shipment_route_1 = __importDefault(require("./routes/shipment.route"));
+const footer_route_1 = __importDefault(require("./routes/footer.route"));
+const statistic_route_1 = __importDefault(require("./routes/statistic.route"));
+const mercantil_route_1 = __importDefault(require("./routes/mercantil.route"));
+const testing_route_1 = __importDefault(require("./routes/testing.route"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const newsletter_job_1 = require("./jobs/newsletter.job");
@@ -63,6 +67,10 @@ app.use("/api/v1/favorites", favorite_route_1.default);
 app.use("/api/v1/pago-movil", pagomovil_route_1.default);
 app.use("/api/v1/zelle", zelle_route_1.default);
 app.use("/api/v1/shipment", shipment_route_1.default);
+app.use("/api/v1/footers", footer_route_1.default);
+app.use("/api/v1/statistics", statistic_route_1.default);
+app.use("/api/v1/mercantil", mercantil_route_1.default);
+app.use("/api/v1/testing-email", testing_route_1.default);
 app.all('*', (req, res, next) => {
     return res.status(404).json({
         status: 'fail',
