@@ -54,6 +54,7 @@ class CheckoutController {
             }
             if (req.body.paymentMethod === 'giftCard') {
                 try {
+                    tracnsactionOrder = yield this.generateInvoiceOrder();
                     const creditCardRocaController = new CreditCardRocaController_1.CreditCardRocaController();
                     const response = yield creditCardRocaController.makePayment(req.body, req.body.carts);
                     const payment = yield this.generatePayment(req, 'giftCard', tracnsactionOrder, (response === null || response === void 0 ? void 0 : response.status) == 'success' ? "approved" : "rejected", 'invoice', req.body.carrierRate);
@@ -63,7 +64,7 @@ class CheckoutController {
                             const shippingResponse = yield shipmentController.createShipment(req.body.carrierRate.objectId);
                             trackingNumber = shippingResponse.trackingNumber;
                         }
-                        const invoice = yield this.generateInvoice(req, req.body.orderId, payment, 'invoice', trackingNumber);
+                        const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment, 'invoice', trackingNumber);
                         this.clearCarts(req);
                         return res.status(200).json({
                             status: 'success',
