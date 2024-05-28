@@ -438,6 +438,8 @@ class CheckoutController {
             }
             return invoice;
         });
+        this.generatePDFProducts = (res) => __awaiter(this, void 0, void 0, function* () {
+        });
         this.subsctractStock = (carts) => __awaiter(this, void 0, void 0, function* () {
             for (let cart of carts) {
                 const product = yield product_schema_1.Product.findById(cart.productId);
