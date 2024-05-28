@@ -6,17 +6,10 @@ const usersList = [
     {
         name: 'Admin',
         email: 'admin@example.com',
-        password: '123456',
+        password: '41lz0DAqKVOn',
         emailVerifiedAt: Date.now(),
         role: "ADMIN"
-    },
-    {
-        name: 'Customer',
-        email: 'customer@example.com',
-        password: '123456',
-        emailVerifiedAt: Date.now(),
-        role: "CUSTOMER"
-    },
+    }
 ]
 
 export class UserSeeder {

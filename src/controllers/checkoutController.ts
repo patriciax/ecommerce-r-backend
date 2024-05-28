@@ -1,7 +1,7 @@
 import { PaypalController } from "./paymentMethods/PaypalController"
 import { BanescoController } from "./paymentMethods/BanescoController"
 import { Product } from "../models/product.schema"
-import { Request } from "express";
+import { Request, Response } from "express";
 import { Invoice } from "../models/invoice.schema";
 import { randomNumbersGenerator } from "../utils/randomNumbersGenerator";
 import { Payment } from "../models/payments.schema";
@@ -555,6 +555,11 @@ export class CheckoutController {
         }
          
         return invoice
+    }
+
+    public generatePDFProducts = async(res: Response) => {
+
+        
     }
 
     private subsctractStock = async(carts:any) => {
