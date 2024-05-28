@@ -1,12 +1,17 @@
-Hola, {{user}},
+  <div style="max-width: 600px; margin: 0 auto;">
 
-Tu número de factura es: {{invoiceNumber}}.
+<h1>Factura ERoca</h1>
+
+Hola, <strong>{{user}}</strong>,
+
+<strong>Tu número de factura es:</strong> {{invoiceNumber}}.
 
 {{#if trackingNumber}}
-<p>Número de tracking: {{ trackingNumber }}</p>
+<p><strong>Número de tracking: </strong> {{ trackingNumber }}</p>
 {{/if}}
 <ul>
     {{#each carts}}
         <li>{{this.productModel}} - {{ this.sizeModel }} - {{this.colorModel}} {{this.quantity}}</li>
     {{/each}}
 </ul>
+  </div>
