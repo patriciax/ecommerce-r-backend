@@ -44,7 +44,7 @@ const app = (0, express_1.default)();
 app.set('trust proxy', true);
 app.use(body_parser_1.default.json({ limit: '35mb' }));
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://www.rcroca.com/', 'https://dashboard.rcroca.com/'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5000', 'https://rcroca.com/', 'https://www.rcroca.com/', 'https://dashboard.rcroca.com/'],
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.static('uploads'));
