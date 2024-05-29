@@ -41,7 +41,9 @@ export class EmailController {
         };
 
         if(this.transporter){
-            await this.transporter.sendMail(mailOptions);
+            console.log("entre")
+            const result = await this.transporter.sendMail(mailOptions);
+            console.log(result)
         }
 
     }

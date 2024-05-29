@@ -28,7 +28,9 @@ class EmailController {
                 context: context,
             };
             if (this.transporter) {
-                yield this.transporter.sendMail(mailOptions);
+                console.log("entre");
+                const result = yield this.transporter.sendMail(mailOptions);
+                console.log(result);
             }
         });
         this.transporter = (0, nodemailer_1.createTransport)({
