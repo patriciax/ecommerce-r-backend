@@ -1,0 +1,15 @@
+El cliente {{user}} ha realizado una compra
+
+Su número de factura es: {{invoiceNumber}}.
+
+{{#if trackingNumber}}
+<p>Número de tracking: {{ trackingNumber }}</p>
+{{/if}}
+
+Los productos comprados fueron:
+
+<ul>
+    {{#each carts}}
+        <li>{{this.productModel}} - {{this.quantity}}</li>
+    {{/each}}
+</ul>
