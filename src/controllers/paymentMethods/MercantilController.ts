@@ -45,7 +45,7 @@ export class MercantilController {
                   "customer_id": req.body.identification
                 }
             }
-
+            console.log(`mercantil ${process.env.MERCANTIL_API_URL}/payment/getauth`)
             const response = await axios.post(`${process.env.MERCANTIL_API_URL}/payment/getauth`, mercantilData, {headers})
 
             let label = ""
@@ -129,8 +129,6 @@ export class MercantilController {
                     "amount": formatedTotal
                 }
             }
-
-            console.log(`mercantil ${process.env.MERCANTIL_API_URL}/payment/pay`)
 
             const response = await axios.post(`${process.env.MERCANTIL_API_URL}/payment/pay`, mercantilData,
             {
