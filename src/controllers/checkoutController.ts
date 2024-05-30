@@ -210,8 +210,6 @@ export class CheckoutController {
 
                 const payment = await this.generatePayment(req, 'mercantil', tracnsactionOrder, response?.transaction_response?.trx_status == 'approved' ? "approved" : "rejected")
 
-                console.log(response)
-
                 if(response?.transaction_response?.trx_status == 'approved'){
                     
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)

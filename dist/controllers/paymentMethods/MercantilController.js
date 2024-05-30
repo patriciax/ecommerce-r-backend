@@ -81,6 +81,7 @@ class MercantilController {
                         "amount": formatedTotal
                     }
                 };
+                console.log(`mercantil ${process.env.MERCANTIL_API_URL}/payment/pay`);
                 const response = yield axios_1.default.post(`${process.env.MERCANTIL_API_URL}/payment/pay`, mercantilData, {
                     headers
                 });

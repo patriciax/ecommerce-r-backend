@@ -130,6 +130,8 @@ export class MercantilController {
                 }
             }
 
+            console.log(`mercantil ${process.env.MERCANTIL_API_URL}/payment/pay`)
+
             const response = await axios.post(`${process.env.MERCANTIL_API_URL}/payment/pay`, mercantilData,
             {
                 headers

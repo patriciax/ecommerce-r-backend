@@ -172,7 +172,6 @@ class CheckoutController {
                     const mercantilProcess = new MercantilController_1.MercantilController();
                     const response = yield mercantilProcess.makePayment(req.body.mercantilData, req.body.carts, 'national');
                     const payment = yield this.generatePayment(req, 'mercantil', tracnsactionOrder, ((_d = response === null || response === void 0 ? void 0 : response.transaction_response) === null || _d === void 0 ? void 0 : _d.trx_status) == 'approved' ? "approved" : "rejected");
-                    console.log(response);
                     if (((_e = response === null || response === void 0 ? void 0 : response.transaction_response) === null || _e === void 0 ? void 0 : _e.trx_status) == 'approved') {
                         const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                         this.clearCarts(req);
