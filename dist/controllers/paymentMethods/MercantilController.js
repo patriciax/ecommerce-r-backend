@@ -81,7 +81,6 @@ class MercantilController {
                         "amount": formatedTotal
                     }
                 };
-                console.log(`mercantil ${process.env.MERCANTIL_API_URL}/payment/pay`);
                 const response = yield axios_1.default.post(`${process.env.MERCANTIL_API_URL}/payment/pay`, mercantilData, {
                     headers
                 });
@@ -131,6 +130,7 @@ class MercantilController {
                         "customer_id": req.body.identification
                     }
                 };
+                console.log(`mercantil ${process.env.MERCANTIL_API_URL}/payment/getauth`);
                 const response = yield axios_1.default.post(`${process.env.MERCANTIL_API_URL}/payment/getauth`, mercantilData, { headers });
                 let label = "";
                 let type = "";
