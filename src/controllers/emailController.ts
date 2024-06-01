@@ -30,7 +30,7 @@ export class EmailController {
 
     }
 
-    sendEmail = async(template:string, receiver:string, subject:string, context:any) => {
+    sendEmail = async(template:string, receiver:string, subject:string, context:any, attachments:any = []) => {
 
         const mailOptions = {
             from: process.env.EMAIL_FROM,
@@ -38,12 +38,12 @@ export class EmailController {
             to: receiver.toString(), // Convertir el tipo 'String' a 'string'
             subject: subject,
             context: context,
+            attachments
         };
 
         if(this.transporter){
-            console.log("entre")
             const result = await this.transporter.sendMail(mailOptions);
-            console.log(result)
+            console.log("result", result)
         }
 
     }

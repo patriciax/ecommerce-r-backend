@@ -21,6 +21,9 @@ import { AllTimePayment } from "../models/allTimePayments";
 import { AllTimePurchase } from "../models/allTimePurchases.schema";
 import { User } from "../models/user.schema";
 import { MercantilController } from "./paymentMethods/MercantilController";
+import { InvoiceController } from "./InvoiceController";
+import {resolve} from 'path'
+import {unlink} from 'fs/promises'
 
 declare global {
     namespace Express {
@@ -167,7 +170,7 @@ export class CheckoutController {
                 const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected")
                 
                 if(response.success){
-
+                    
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
 
                     this.clearCarts(req)
@@ -462,6 +465,7 @@ export class CheckoutController {
 
     public generateInvoice = async(req:Request, order:string, paymentModel:any, purchaseType:string = 'invoice', trackingNumber = '') => {
         
+        const invoiceController = new InvoiceController()
         let userName = ''
         let userEmail = ''
         let userPhone = ''
@@ -541,7 +545,15 @@ export class CheckoutController {
             const receiverEmail = req?.user?.email || userEmail
             const receiverName = req?.user?.name || userName
 
-            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber)
+            const name = await invoiceController.generatePDFProducts()
+            const attachments =  [
+                { 
+                    filename: name,
+                    path: resolve(__dirname, '../uploads', name)
+                }
+            ]
+            
+            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber, attachments)
 
             const adminEmail = await AdminEmail.findOne()
             if(adminEmail){
@@ -549,15 +561,12 @@ export class CheckoutController {
             }
             
             this.subsctractStock(req.body.carts)
+
+            await unlink(resolve(__dirname, '../uploads', name))
         
         }
          
         return invoice
-    }
-
-    public generatePDFProducts = async(res: Response) => {
-
-        
     }
 
     private subsctractStock = async(carts:any) => {
@@ -572,14 +581,15 @@ export class CheckoutController {
         }
     }
 
-    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false, trackingNumber:string = "") => {
+    private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false, trackingNumber:string = "", attachments:any = []) => {
         const emailController = new EmailController()
+
         emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
             "invoiceNumber": invoiceNumber,
             "user": name,
             "carts": carts,
             "trackingNumber": trackingNumber
-        })
+        }, attachments)
     }
 
     private clearCarts = async(req:Request) => {

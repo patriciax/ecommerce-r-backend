@@ -7,6 +7,10 @@ import { InvoiceProduct } from "../models/invoiceProduct.schema";
 import { Product } from "../models/product.schema";
 import { ShipmentController } from "./shipmentController";
 import { AllTimePayment } from "../models/allTimePayments";
+import {resolve} from 'path'
+const PDFDocument = require('pdfkit');
+const PDFTable = require('voilab-pdf-table');
+const fs = require('fs');
 
 export class InvoiceController {
 
@@ -168,6 +172,109 @@ export class InvoiceController {
             return error
         }
 
+    }
+
+    public generatePDFProducts = async() => {
+
+        const currentDate = Date.now()
+        const name = `invoice-${currentDate}.pdf`
+        const products = [
+            {description: '', quantity: '', price: '', total: ''},
+            {description: 'Product 1', quantity: 1, price: 20.10, total: 20.10},
+            {description: 'Product 2', quantity: 4, price: 4.00, total: 16.00},
+            {description: 'Product 3', quantity: 2, price: 17.85, total: 35.70},
+            {description: 'Product 4', quantity: 2, price: 17.85, total: 35.70},
+            {description: 'Product 5', quantity: 2, price: 17.85, total: 35.70}
+        ]
+
+        let pdfDoc = new PDFDocument;
+        let table = new PDFTable(pdfDoc);
+        pdfDoc.pipe(fs.createWriteStream(resolve(__dirname, '../uploads', name)));
+        
+        pdfDoc.image(resolve(__dirname, '../uploads', 'roca-logo.jpg'), 20 , 10, {
+           width:100,
+            align: 'left',
+            valign: 'top'
+        });
+
+        pdfDoc.image(resolve(__dirname, '../uploads', 'roca-text.png'), 450, 10, {
+            width:100,
+            align: 'right',
+            valign: 'top'
+        });
+
+        pdfDoc.fontSize(20).text('Factura 3568105375814654', {
+            align: 'center'
+        }).moveDown(1);
+
+        pdfDoc.fontSize(12).text('Nombre: Willian Rodriguez     Email: rodriguezwillian95@gmail.com', {
+            align: 'left'
+        }).moveDown(1);
+
+        pdfDoc.fontSize(12).text('Teléfono: +584121081638       Tracking: 1XXXXXXXXXXXXXX', {
+            align: 'left'
+        }).moveDown(1);
+
+        pdfDoc.fontSize(12).text('Dirección: Calle san bosco, casa #2665', {
+            align: 'left'
+        }).moveDown(1);
+
+        table
+            // add some plugins (here, a 'fit-to-width' for a column)
+            .addPlugin(new (require('voilab-pdf-table/plugins/fitcolumn'))({
+                column: 'description'
+            }))
+            // set defaults to your columns
+            .setColumnsDefaults({
+                headerBorder: 'B',
+                align: 'right'
+            })
+            // add table columns
+            .addColumns([
+                {
+                    id: 'description',
+                    header: 'Producto',
+                    align: 'left',
+                    height: 20
+                },
+                {
+                    id: 'quantity',
+                    header: 'Cantidad',
+                    width: 50,
+                    height: 20
+                },
+                {
+                    id: 'price',
+                    header: 'Precio',
+                    width: 40,
+                    height: 20
+                },
+            ]) .onPageAdded(function (tb:any) {
+                tb.addHeader();
+            });
+
+        // draw content, by passing data to the addBody method
+        table.addBody(products);
+
+        pdfDoc.fontSize(10).text('Sub Total: 100.00', 0, (products.length * 20) + 260, {
+            align: 'right',
+        }).moveDown(0.5);
+
+        pdfDoc.fontSize(10).text('Iva: 20.00', {
+            align: 'right'
+        }).moveDown(0.5);
+
+        pdfDoc.fontSize(10).text('Envío: 20.00', {
+            align: 'right'
+        }).moveDown(0.5);
+
+        pdfDoc.fontSize(10).text('Envío: 120.00', {
+            align: 'right'
+        }).moveDown(0.5);
+
+        pdfDoc.end()
+
+        return name
     }
 
     public userInvoices = async (req: Request, res: Response) => {
