@@ -553,11 +553,11 @@ export class CheckoutController {
                 }
             ]
             
-            this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber, attachments)
+            await this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber, attachments)
 
             const adminEmail = await AdminEmail.findOne()
             if(adminEmail){
-                this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber)
+                await this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber)
             }
             
             this.subsctractStock(req.body.carts)
@@ -584,7 +584,7 @@ export class CheckoutController {
     private sendInvoiceEmail  = async(email:string, invoiceNumber:string, name:string, carts:any, isAdmin:boolean = false, trackingNumber:string = "", attachments:any = []) => {
         const emailController = new EmailController()
 
-        emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
+        await emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
             "invoiceNumber": invoiceNumber,
             "user": name,
             "carts": carts,
