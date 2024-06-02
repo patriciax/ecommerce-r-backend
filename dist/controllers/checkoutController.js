@@ -142,6 +142,7 @@ class CheckoutController {
                     const banescoProcess = new BanescoController_1.BanescoController();
                     const response = yield banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national');
                     const payment = yield this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected");
+                    console.log("response", response);
                     if (response.success) {
                         const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                         this.clearCarts(req);
@@ -160,6 +161,7 @@ class CheckoutController {
                     });
                 }
                 catch (error) {
+                    console.log("error", error);
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'
