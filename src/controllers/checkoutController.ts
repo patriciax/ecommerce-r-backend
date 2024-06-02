@@ -185,12 +185,15 @@ export class CheckoutController {
                     })
                 }
 
+                console.log("response", response)
+
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
                 })
 
             }catch(error){
+                console.log("error", error)
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
@@ -467,10 +470,12 @@ export class CheckoutController {
         
         const invoiceController = new InvoiceController()
         let userName = ''
+        let userLastname = ''
         let userEmail = ''
         let userPhone = ''
         
         userName = req?.user ? req?.user.name : req.body.name
+        userLastname = req?.user ? req?.user.lastname : ''
         userEmail = req?.user ? req?.user.email : req.body.email
         userPhone = req?.user ? req?.user.phone : req.body.phone
 
@@ -482,7 +487,7 @@ export class CheckoutController {
         
         const invoice = await Invoice.create({
             user: req?.user?._id,
-            name: userName,
+            name: `${userName} ${userLastname}`,
             email: userEmail,
             phone: userPhone,
             transactionOrder: order,
@@ -499,6 +504,8 @@ export class CheckoutController {
 
             for(let cart of req.body.carts){
 
+
+                const price = cart.priceDiscount || cart.price 
                 const productModel = cart.name
                 const sizeModel = cart.size.name
                 const colorModel = cart.color.name
@@ -535,7 +542,8 @@ export class CheckoutController {
                         color: cart.color._id,
                         productModel: productModel,
                         colorModel: colorModel,
-                        sizeModel: sizeModel
+                        sizeModel: sizeModel,
+                        price: price
                     }
                 )
 
@@ -545,7 +553,7 @@ export class CheckoutController {
             const receiverEmail = req?.user?.email || userEmail
             const receiverName = req?.user?.name || userName
 
-            const name = await invoiceController.generatePDFProducts()
+            const name = await invoiceController.generatePDFProducts(invoice, invoiceProducts, paymentModel)
             const attachments =  [
                 { 
                     filename: name,
