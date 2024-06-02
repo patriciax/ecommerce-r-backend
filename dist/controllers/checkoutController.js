@@ -134,7 +134,9 @@ class CheckoutController {
                 }
             }
             else if (req.body.paymentMethod === 'banesco') {
+                console.log("entre 1");
                 try {
+                    console.log("entre 2");
                     const ip = req.ip.split(':').pop();
                     req.body.banescoData.ip = ip;
                     tracnsactionOrder = yield this.generateInvoiceOrder();
