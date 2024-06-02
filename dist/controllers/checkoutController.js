@@ -31,6 +31,9 @@ const allTimePayments_1 = require("../models/allTimePayments");
 const allTimePurchases_schema_1 = require("../models/allTimePurchases.schema");
 const user_schema_1 = require("../models/user.schema");
 const MercantilController_1 = require("./paymentMethods/MercantilController");
+const InvoiceController_1 = require("./InvoiceController");
+const path_1 = require("path");
+const promises_1 = require("fs/promises");
 class CheckoutController {
     constructor() {
         this.paymentMethods = [
@@ -365,6 +368,7 @@ class CheckoutController {
         });
         this.generateInvoice = (req, order, paymentModel, purchaseType = 'invoice', trackingNumber = '') => __awaiter(this, void 0, void 0, function* () {
             var _o, _p, _q, _r, _s, _t, _u, _v;
+            const invoiceController = new InvoiceController_1.InvoiceController();
             let userName = '';
             let userEmail = '';
             let userPhone = '';
@@ -428,16 +432,22 @@ class CheckoutController {
                 yield invoiceProduct_schema_1.InvoiceProduct.insertMany(invoiceProducts);
                 const receiverEmail = ((_u = req === null || req === void 0 ? void 0 : req.user) === null || _u === void 0 ? void 0 : _u.email) || userEmail;
                 const receiverName = ((_v = req === null || req === void 0 ? void 0 : req.user) === null || _v === void 0 ? void 0 : _v.name) || userName;
-                this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber);
+                const name = yield invoiceController.generatePDFProducts();
+                const attachments = [
+                    {
+                        filename: name,
+                        path: (0, path_1.resolve)(__dirname, '../uploads', name)
+                    }
+                ];
+                this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber, attachments);
                 const adminEmail = yield adminEmail_schema_1.AdminEmail.findOne();
                 if (adminEmail) {
                     this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber);
                 }
                 this.subsctractStock(req.body.carts);
+                yield (0, promises_1.unlink)((0, path_1.resolve)(__dirname, '../uploads', name));
             }
             return invoice;
-        });
-        this.generatePDFProducts = (res) => __awaiter(this, void 0, void 0, function* () {
         });
         this.subsctractStock = (carts) => __awaiter(this, void 0, void 0, function* () {
             for (let cart of carts) {
@@ -449,14 +459,14 @@ class CheckoutController {
                 }
             }
         });
-        this.sendInvoiceEmail = (email, invoiceNumber, name, carts, isAdmin = false, trackingNumber = "") => __awaiter(this, void 0, void 0, function* () {
+        this.sendInvoiceEmail = (email, invoiceNumber, name, carts, isAdmin = false, trackingNumber = "", attachments = []) => __awaiter(this, void 0, void 0, function* () {
             const emailController = new emailController_1.EmailController();
             emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
                 "invoiceNumber": invoiceNumber,
                 "user": name,
                 "carts": carts,
                 "trackingNumber": trackingNumber
-            });
+            }, attachments);
         });
         this.clearCarts = (req) => __awaiter(this, void 0, void 0, function* () {
             var _w;

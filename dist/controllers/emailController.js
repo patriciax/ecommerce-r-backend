@@ -19,18 +19,18 @@ const path_1 = require("path");
 class EmailController {
     constructor() {
         this.transporter = null;
-        this.sendEmail = (template, receiver, subject, context) => __awaiter(this, void 0, void 0, function* () {
+        this.sendEmail = (template, receiver, subject, context, attachments = []) => __awaiter(this, void 0, void 0, function* () {
             const mailOptions = {
                 from: process.env.EMAIL_FROM,
                 template: template,
                 to: receiver.toString(), // Convertir el tipo 'String' a 'string'
                 subject: subject,
                 context: context,
+                attachments
             };
             if (this.transporter) {
-                console.log("entre");
                 const result = yield this.transporter.sendMail(mailOptions);
-                console.log(result);
+                console.log("result", result);
             }
         });
         this.transporter = (0, nodemailer_1.createTransport)({
