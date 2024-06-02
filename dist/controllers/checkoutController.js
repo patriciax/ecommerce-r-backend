@@ -134,7 +134,9 @@ class CheckoutController {
                 }
             }
             else if (req.body.paymentMethod === 'banesco') {
+                console.log("entre 1");
                 try {
+                    console.log("entre 2");
                     const ip = req.ip.split(':').pop();
                     req.body.banescoData.ip = ip;
                     tracnsactionOrder = yield this.generateInvoiceOrder();
@@ -142,6 +144,7 @@ class CheckoutController {
                     const banescoProcess = new BanescoController_1.BanescoController();
                     const response = yield banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national');
                     const payment = yield this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected");
+                    console.log("response", response);
                     if (response.success) {
                         const invoice = yield this.generateInvoice(req, tracnsactionOrder, payment);
                         this.clearCarts(req);

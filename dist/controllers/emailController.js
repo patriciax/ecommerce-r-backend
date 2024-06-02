@@ -42,6 +42,7 @@ class EmailController {
                 pass: process.env.EMAIL_PASS
             }
         });
+        console.log("this.transporter", this.transporter);
         const handlebarOptions = {
             viewEngine: {
                 extName: '.hbs',
