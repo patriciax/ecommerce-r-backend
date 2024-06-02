@@ -157,8 +157,9 @@ export class CheckoutController {
         }
 
         else if(req.body.paymentMethod === 'banesco'){
+            console.log("entre 1")
             try{
-
+                console.log("entre 2")
                 const ip = req.ip.split(':').pop()
                 req.body.banescoData.ip = ip
 
@@ -168,7 +169,7 @@ export class CheckoutController {
                 const banescoProcess = new BanescoController()
                 const response = await banescoProcess.makePayment(req.body.banescoData, req.body.carts, 'national')
                 const payment = await this.generatePayment(req, 'banesco', tracnsactionOrder, response.success ? "approved" : "rejected")
-                
+                console.log("response", response)
                 if(response.success){
                     
                     const invoice = await this.generateInvoice(req, tracnsactionOrder, payment)
@@ -191,6 +192,7 @@ export class CheckoutController {
                 })
 
             }catch(error){
+                console.log("error", error)
                 return res.status(400).json({
                     status: 'fail',
                     message: 'PAYMENT_FAILED'
