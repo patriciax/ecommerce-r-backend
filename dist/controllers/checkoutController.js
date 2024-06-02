@@ -154,12 +154,14 @@ class CheckoutController {
                             }
                         });
                     }
+                    console.log("response", response);
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'
                     });
                 }
                 catch (error) {
+                    console.log("error", error);
                     return res.status(400).json({
                         status: 'fail',
                         message: 'PAYMENT_FAILED'
@@ -370,9 +372,11 @@ class CheckoutController {
             var _o, _p, _q, _r, _s, _t, _u, _v;
             const invoiceController = new InvoiceController_1.InvoiceController();
             let userName = '';
+            let userLastname = '';
             let userEmail = '';
             let userPhone = '';
             userName = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.name : req.body.name;
+            userLastname = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.lastname : '';
             userEmail = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.email : req.body.email;
             userPhone = (req === null || req === void 0 ? void 0 : req.user) ? req === null || req === void 0 ? void 0 : req.user.phone : req.body.phone;
             if (req === null || req === void 0 ? void 0 : req.user) {
@@ -382,7 +386,7 @@ class CheckoutController {
             }
             const invoice = yield invoice_schema_1.Invoice.create({
                 user: (_p = req === null || req === void 0 ? void 0 : req.user) === null || _p === void 0 ? void 0 : _p._id,
-                name: userName,
+                name: `${userName} ${userLastname}`,
                 email: userEmail,
                 phone: userPhone,
                 transactionOrder: order,
@@ -396,6 +400,7 @@ class CheckoutController {
             if (purchaseType == 'invoice') {
                 const invoiceProducts = [];
                 for (let cart of req.body.carts) {
+                    const price = cart.priceDiscount || cart.price;
                     const productModel = cart.name;
                     const sizeModel = cart.size.name;
                     const colorModel = cart.color.name;
@@ -426,23 +431,24 @@ class CheckoutController {
                         color: cart.color._id,
                         productModel: productModel,
                         colorModel: colorModel,
-                        sizeModel: sizeModel
+                        sizeModel: sizeModel,
+                        price: price
                     });
                 }
                 yield invoiceProduct_schema_1.InvoiceProduct.insertMany(invoiceProducts);
                 const receiverEmail = ((_u = req === null || req === void 0 ? void 0 : req.user) === null || _u === void 0 ? void 0 : _u.email) || userEmail;
                 const receiverName = ((_v = req === null || req === void 0 ? void 0 : req.user) === null || _v === void 0 ? void 0 : _v.name) || userName;
-                const name = yield invoiceController.generatePDFProducts();
+                const name = yield invoiceController.generatePDFProducts(invoice, invoiceProducts, paymentModel);
                 const attachments = [
                     {
                         filename: name,
                         path: (0, path_1.resolve)(__dirname, '../uploads', name)
                     }
                 ];
-                this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber, attachments);
+                yield this.sendInvoiceEmail(receiverEmail, order, receiverName, invoiceProducts, false, trackingNumber, attachments);
                 const adminEmail = yield adminEmail_schema_1.AdminEmail.findOne();
                 if (adminEmail) {
-                    this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber);
+                    yield this.sendInvoiceEmail(adminEmail.email, order, receiverName, invoiceProducts, true, trackingNumber);
                 }
                 this.subsctractStock(req.body.carts);
                 yield (0, promises_1.unlink)((0, path_1.resolve)(__dirname, '../uploads', name));
@@ -461,7 +467,7 @@ class CheckoutController {
         });
         this.sendInvoiceEmail = (email, invoiceNumber, name, carts, isAdmin = false, trackingNumber = "", attachments = []) => __awaiter(this, void 0, void 0, function* () {
             const emailController = new emailController_1.EmailController();
-            emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
+            yield emailController.sendEmail(isAdmin ? "invoiceAdmin" : "invoice", email, "Factura ERoca", {
                 "invoiceNumber": invoiceNumber,
                 "user": name,
                 "carts": carts,

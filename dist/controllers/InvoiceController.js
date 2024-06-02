@@ -19,6 +19,7 @@ const product_schema_1 = require("../models/product.schema");
 const shipmentController_1 = require("./shipmentController");
 const allTimePayments_1 = require("../models/allTimePayments");
 const path_1 = require("path");
+const numberFormat_1 = require("../utils/numberFormat");
 const PDFDocument = require('pdfkit');
 const PDFTable = require('voilab-pdf-table');
 const fs = require('fs');
@@ -152,17 +153,24 @@ class InvoiceController {
                 return error;
             }
         });
-        this.generatePDFProducts = () => __awaiter(this, void 0, void 0, function* () {
+        this.generatePDFProducts = (invoice, invoiceProducts, payment) => __awaiter(this, void 0, void 0, function* () {
             const currentDate = Date.now();
             const name = `invoice-${currentDate}.pdf`;
-            const products = [
-                { description: '', quantity: '', price: '', total: '' },
-                { description: 'Product 1', quantity: 1, price: 20.10, total: 20.10 },
-                { description: 'Product 2', quantity: 4, price: 4.00, total: 16.00 },
-                { description: 'Product 3', quantity: 2, price: 17.85, total: 35.70 },
-                { description: 'Product 4', quantity: 2, price: 17.85, total: 35.70 },
-                { description: 'Product 5', quantity: 2, price: 17.85, total: 35.70 }
-            ];
+            const products = invoiceProducts.map((invoiceProduct) => {
+                return {
+                    description: `${invoiceProduct.productModel} ${invoiceProduct.colorModel} ${invoiceProduct.sizeModel}`,
+                    quantity: invoiceProduct.quantity,
+                    price: invoiceProduct.price,
+                    total: (0, numberFormat_1.decimalNumberFormat)(invoiceProduct.quantity * invoiceProduct.price)
+                };
+            });
+            products.unshift({
+                description: '',
+                quantity: '',
+                price: '',
+                total: ''
+            });
+            const totalProducts = products.reduce((acc, product) => acc = acc + (product.quantity * product.price), 0);
             let pdfDoc = new PDFDocument;
             let table = new PDFTable(pdfDoc);
             pdfDoc.pipe(fs.createWriteStream((0, path_1.resolve)(__dirname, '../uploads', name)));
@@ -176,16 +184,13 @@ class InvoiceController {
                 align: 'right',
                 valign: 'top'
             });
-            pdfDoc.fontSize(20).text('Factura 3568105375814654', {
+            pdfDoc.fontSize(20).text(`Factura ${invoice.transactionOrder}`, {
                 align: 'center'
             }).moveDown(1);
-            pdfDoc.fontSize(12).text('Nombre: Willian Rodriguez     Email: rodriguezwillian95@gmail.com', {
+            pdfDoc.fontSize(12).text(`Nombre: ${invoice.name}     Email: ${invoice.email}`, {
                 align: 'left'
             }).moveDown(1);
-            pdfDoc.fontSize(12).text('Teléfono: +584121081638       Tracking: 1XXXXXXXXXXXXXX', {
-                align: 'left'
-            }).moveDown(1);
-            pdfDoc.fontSize(12).text('Dirección: Calle san bosco, casa #2665', {
+            pdfDoc.fontSize(12).text(`Teléfono: ${invoice.phone}       ${invoice.shippingTracking ? 'Tracking: ' + invoice.shippingTracking : ''}`, {
                 align: 'left'
             }).moveDown(1);
             table
@@ -218,21 +223,29 @@ class InvoiceController {
                     width: 40,
                     height: 20
                 },
+                {
+                    id: 'total',
+                    header: 'Total',
+                    width: 40,
+                    height: 20
+                },
             ]).onPageAdded(function (tb) {
                 tb.addHeader();
             });
             // draw content, by passing data to the addBody method
             table.addBody(products);
-            pdfDoc.fontSize(10).text('Sub Total: 100.00', 0, (products.length * 20) + 260, {
+            const total = totalProducts + payment.taxAmount + ((payment === null || payment === void 0 ? void 0 : payment.carrierRate) ? payment.carrierRate.amount * 1 : 0);
+            console.log(totalProducts);
+            pdfDoc.fontSize(10).text(`Sub Total: ${(0, numberFormat_1.decimalNumberFormat)(totalProducts)}`, 0, (products.length * 20) + 260, {
                 align: 'right',
             }).moveDown(0.5);
-            pdfDoc.fontSize(10).text('Iva: 20.00', {
+            pdfDoc.fontSize(10).text(`Iva: ${(0, numberFormat_1.decimalNumberFormat)(payment.taxAmount)}`, {
                 align: 'right'
             }).moveDown(0.5);
-            pdfDoc.fontSize(10).text('Envío: 20.00', {
+            pdfDoc.fontSize(10).text(`Envío: ${(0, numberFormat_1.decimalNumberFormat)((payment === null || payment === void 0 ? void 0 : payment.carrierRate) ? payment.carrierRate.amount * 1 : 0)}`, {
                 align: 'right'
             }).moveDown(0.5);
-            pdfDoc.fontSize(10).text('Envío: 120.00', {
+            pdfDoc.fontSize(10).text(`Total: ${(0, numberFormat_1.decimalNumberFormat)(total)}`, {
                 align: 'right'
             }).moveDown(0.5);
             pdfDoc.end();

@@ -22,6 +22,9 @@ const invoiceProductSchema = new mongoose_1.Schema({
     quantity: {
         type: Number,
         default: 1
+    },
+    price: {
+        type: Number
     }
 });
 invoiceProductSchema.pre(/^find/, function (next) {
