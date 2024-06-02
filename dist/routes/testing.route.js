@@ -15,5 +15,4 @@ router.get('/invoice', emailTesting.sendInvoice);
 router.get('/newsletter', emailTesting.sendNewsletterHandlebars);
 router.get('/reject-payment', emailTesting.sendRejectedPayment);
 router.get('/ship-tracking', emailTesting.sendShipTracking);
-router.get('/pdf', checkoutController.generatePDFProducts);
 exports.default = router;
