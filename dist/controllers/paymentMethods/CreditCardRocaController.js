@@ -22,6 +22,7 @@ const pagoMovilController_1 = require("./pagoMovilController");
 const dolarPrice_schema_1 = require("../../models/dolarPrice.schema");
 const invoice_schema_1 = require("../../models/invoice.schema");
 const payments_schema_1 = require("../../models/payments.schema");
+const numberFormat_1 = require("../../utils/numberFormat");
 // declare global {
 //     namespace Express {
 //         interface Request {
@@ -247,7 +248,7 @@ class CreditCardRocaController {
                 emailController.sendEmail("creditCardBalance", request.body.email, "Balance de GiftCard ERoca", {
                     "cardNumber": request.body.cardNumber,
                     "cardPin": request.body.cardPin,
-                    "credits": credits
+                    "credits": (0, numberFormat_1.decimalNumberFormat)(credits || 0)
                 });
                 return response.status(200).json({
                     status: 'success',
