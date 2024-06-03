@@ -15,6 +15,7 @@ import { Invoice } from "../../models/invoice.schema"
 import { Payment } from "../../models/payments.schema"
 import { InvoiceProduct } from "../../models/invoiceProduct.schema"
 import { Product } from "../../models/product.schema"
+import { decimalNumberFormat } from "../../utils/numberFormat"
 
 // declare global {
 //     namespace Express {
@@ -292,7 +293,7 @@ export class CreditCardRocaController {
             emailController.sendEmail("creditCardBalance", request.body.email, "Balance de GiftCard ERoca", {
                 "cardNumber": request.body.cardNumber,
                 "cardPin": request.body.cardPin,
-                "credits": credits
+                "credits": decimalNumberFormat(credits || 0)
             })
 
             return response.status(200).json({
